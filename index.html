@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibePhotoshop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div id="app">
+        <header class="toolbar">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="logo-icon">
+                    <rect x="3" y="3" width="18" height="18" rx="4" fill="var(--accent)" />
+                    <circle cx="12" cy="12" r="5" fill="#111116" />
+                </svg>
+                <span>VibePhotoshop</span>
+            </div>
+            <div class="menu-bar">
+                <div class="menu-item" id="menu-file">
+                    <button class="menu-trigger" id="file-menu-btn">File</button>
+                    <div class="dropdown-menu hidden" id="file-dropdown">
+                        <button class="dropdown-item" id="btn-new">New...</button>
+                        <button class="dropdown-item" id="btn-open">Open...</button>
+                        <hr class="menu-divider">
+                        <button class="dropdown-item" id="btn-save" disabled>Save As...</button>
+                    </div>
+                </div>
+                <!-- Hidden file input -->
+                <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp" hidden>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <aside id="sidebar-tools">
+                <div class="tools-top">
+                    <!-- Future tools go here -->
+                    <button class="tool-btn" id="tool-pencil" title="Pencil Tool (P)" data-tool="pencil">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="color-picker-widget">
+                    <div class="color-wrapper bg-wrapper">
+                        <input type="color" id="bg-color" value="#ffffff" title="Set background color">
+                    </div>
+                    <div class="color-wrapper fg-wrapper">
+                        <input type="color" id="fg-color" value="#000000" title="Set foreground color">
+                    </div>
+                </div>
+            </aside>
+
+            <main id="workspace">
+                <div class="canvas-wrapper">
+                    <div id="canvas-stack">
+                        <!-- Layer canvases injected dynamically here -->
+                    </div>
+                    <div id="no-image-state">
+                        <p>Open an image to start editing</p>
+                    </div>
+                </div>
+            </main>
+
+            <aside id="sidebar-right" class="layers-panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Layers</h3>
+                    <button class="tool-btn" id="btn-add-layer" title="New Layer" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="layers-list" id="layers-list">
+                    <!-- Layer items injected here -->
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modals -->
+    <dialog id="new-canvas-modal" class="modal">
+        <form method="dialog" id="new-canvas-form">
+            <h2>New Canvas</h2>
+            <div class="form-group">
+                <label for="canvas-width">Width (px)</label>
+                <input type="number" id="canvas-width" name="width" value="800" min="1" max="10000" required>
+            </div>
+            <div class="form-group">
+                <label for="canvas-height">Height (px)</label>
+                <input type="number" id="canvas-height" name="height" value="600" min="1" max="10000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-new">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Since we aren't using a server, standard script is best to prevent CORS module issues -->
+    <script src="js/app.js"></script>
+</body>
+</html>
