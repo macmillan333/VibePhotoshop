@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const newCanvasForm = document.getElementById('new-canvas-form');
     const btnCancelNew = document.getElementById('btn-cancel-new');
 
+    const canvasWrapper = document.querySelector('.canvas-wrapper');
     const canvasStack = document.getElementById('canvas-stack');
     const layersList = document.getElementById('layers-list');
     const btnAddLayer = document.getElementById('btn-add-layer');
@@ -23,6 +24,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let documentWidth = 800;
     let documentHeight = 600;
     let documentCreated = false;
+
+    // Viewport State
+    const MIN_ZOOM = 0.1;
+    const MAX_ZOOM = 32.0;
+    let zoomLevel = 1.0;
+    let panX = 0;
+    let panY = 0;
+    
+    let isPanning = false;
+    let panStartX = 0;
+    let panStartY = 0;
+    
+    let isZoomDragging = false;
+    let zoomStartX = 0;
+    let zoomStartY = 0;
+    let zoomStartLevel = 1.0;
 
     // Layers Subsystem
     let layers = []; // Array of { id, name, canvas, ctx }
@@ -38,7 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let bgColor = '#ffffff';
 
     const toolPencil = document.getElementById('tool-pencil');
-    const toolBtns = [toolPencil];
+    const toolZoom = document.getElementById('tool-zoom');
+    const toolBtns = [toolPencil, toolZoom];
 
     let currentTool = null;
     let isDrawing = false;
@@ -70,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveState() {
         if (!documentCreated) return;
         
-        // Truncate future if we are branching from the past
         if (historyIndex < history.length - 1) {
             history = history.slice(0, historyIndex + 1);
         }
@@ -98,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function restoreState(state) {
-        // Destroy existing DOM elements securely
         layers.forEach(l => l.canvas.remove());
         layersList.innerHTML = '';
         layers = [];
@@ -111,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasStack.style.height = `${documentHeight}px`;
         canvasStack.style.aspectRatio = `${documentWidth} / ${documentHeight}`;
         
-        // Rebuild Layers array keeping precise structural order
         state.layersData.forEach(lData => {
             const c = document.createElement('canvas');
             c.id = lData.id;
@@ -150,6 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
+        // UI Alt tag tracking
+        if (e.key === 'Alt' && currentTool === 'zoom') {
+            canvasStack.classList.add('alt-down');
+        }
+
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 'z' || e.key === 'Z') {
                 e.preventDefault();
@@ -165,6 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Alt') {
+            canvasStack.classList.remove('alt-down');
+        }
+    });
 
     // --- Menu Logic ---
     function toggleMenu(menuBtn, dropdown) {
@@ -198,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Tool Management ---
     function setActiveTool(toolId) {
         toolBtns.forEach(btn => btn.classList.remove('active'));
-        canvasStack.classList.remove('tool-pencil');
+        canvasStack.classList.remove('tool-pencil', 'tool-zoom', 'alt-down');
 
         if (currentTool === toolId) {
             currentTool = null;
@@ -209,10 +234,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (toolId === 'pencil') {
             toolPencil.classList.add('active');
             canvasStack.classList.add('tool-pencil');
+        } else if (toolId === 'zoom') {
+            toolZoom.classList.add('active');
+            canvasStack.classList.add('tool-zoom');
         }
     }
 
     toolPencil.addEventListener('click', () => setActiveTool('pencil'));
+    toolZoom.addEventListener('click', () => setActiveTool('zoom'));
+
+    // --- Viewport Management ---
+    function applyViewport() {
+        canvasStack.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+    }
+
+    function zoomAtPoint(clientX, clientY, newZoom) {
+        newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+        if (newZoom === zoomLevel) return;
+
+        // Bounding rect gets the CURRENT scaled & physically translated box
+        const rect = canvasStack.getBoundingClientRect();
+        
+        // Offset of mouse from top-left of the currently visually scaled canvas
+        const offsetX = clientX - rect.left;
+        const offsetY = clientY - rect.top;
+        
+        // Physical document coordinates
+        const unscaledX = offsetX / zoomLevel;
+        const unscaledY = offsetY / zoomLevel;
+        
+        // Difference in scale multiplied by physical coordinates gives translate shift
+        panX -= unscaledX * (newZoom - zoomLevel);
+        panY -= unscaledY * (newZoom - zoomLevel);
+        
+        zoomLevel = newZoom;
+        applyViewport();
+    }
+
 
     // --- Layer Management ---
     function initDocument(w, h, skipBaseLayer = false) {
@@ -228,12 +286,17 @@ document.addEventListener('DOMContentLoaded', () => {
         history = [];
         historyIndex = -1;
         
+        // Reset Viewport
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        
         canvasStack.classList.add('active');
         canvasStack.style.width = `${w}px`;
         canvasStack.style.height = `${h}px`;
-        canvasStack.style.maxWidth = '100%';
-        canvasStack.style.maxHeight = '100%';
-        canvasStack.style.aspectRatio = `${w} / ${h}`;
+        // Top-left origin is critical for exact mouse cursor coordinate tracking 
+        canvasStack.style.transformOrigin = '0 0';
+        applyViewport();
         
         noImageState.classList.add('hidden');
         btnSave.removeAttribute('disabled');
@@ -439,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Drawing Engine (Bresenham) ---
     function getCanvasCoords(e) {
         const rect = canvasStack.getBoundingClientRect();
+        // Since BoundingClientRect natively accounts for the CSS transform matrix, scaling is automatically mapped
         const scaleX = documentWidth / rect.width;
         const scaleY = documentHeight / rect.height;
         return {
@@ -468,24 +532,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    canvasStack.addEventListener('pointerdown', (e) => {
-        if (!documentCreated || !currentTool) return;
+    // Capture pointers directly on the viewport wrapper so drawing/panning/zooming tracks outside bounds seamlessly
+    canvasWrapper.addEventListener('pointerdown', (e) => {
+        if (!documentCreated) return;
         
-        isDrawing = true;
-        const coords = getCanvasCoords(e);
-        lastX = coords.x;
-        lastY = coords.y;
-        
-        if (currentTool === 'pencil') {
-            drawPixelBresenham(lastX, lastY, coords.x, coords.y);
+        // Middle mouse button (button 1) triggers Panning natively
+        if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil')) {
+            isPanning = true;
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            canvasStack.classList.add('is-panning');
+            canvasWrapper.setPointerCapture(e.pointerId);
+            return;
         }
-        
-        canvasStack.setPointerCapture(e.pointerId);
+
+        if (currentTool === 'zoom') {
+            isZoomDragging = false;
+            zoomStartX = e.clientX;
+            zoomStartY = e.clientY;
+            zoomStartLevel = zoomLevel;
+            canvasWrapper.setPointerCapture(e.pointerId);
+        } else if (currentTool === 'pencil') {
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            lastX = coords.x;
+            lastY = coords.y;
+            drawPixelBresenham(lastX, lastY, coords.x, coords.y);
+            canvasWrapper.setPointerCapture(e.pointerId);
+        }
     });
 
-    canvasStack.addEventListener('pointermove', (e) => {
-        if (!isDrawing) return;
-        if (currentTool === 'pencil') {
+    canvasWrapper.addEventListener('pointermove', (e) => {
+        if (!documentCreated) return;
+
+        if (isPanning) {
+            const dx = e.clientX - panStartX;
+            const dy = e.clientY - panStartY;
+            panX += dx;
+            panY += dy;
+            applyViewport();
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            return;
+        }
+
+        if (currentTool === 'zoom' && e.buttons === 1) {
+            const dx = e.clientX - zoomStartX;
+            if (Math.abs(dx) > 2) {
+                isZoomDragging = true;
+                // Scrubby zoom function maps X mouse tracking to exponential multi-scale
+                const newZoom = zoomStartLevel * Math.pow(1.01, dx);
+                zoomAtPoint(zoomStartX, zoomStartY, newZoom);
+            }
+        } else if (currentTool === 'pencil' && isDrawing) {
             const coords = getCanvasCoords(e);
             drawPixelBresenham(lastX, lastY, coords.x, coords.y);
             lastX = coords.x;
@@ -493,22 +592,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    canvasStack.addEventListener('pointerup', (e) => {
-        if(isDrawing) {
+    canvasWrapper.addEventListener('pointerup', (e) => {
+        if (!documentCreated) return;
+        
+        try { canvasWrapper.releasePointerCapture(e.pointerId); } catch(err) {}
+
+        if (isPanning) {
+            isPanning = false;
+            canvasStack.classList.remove('is-panning');
+            return;
+        }
+
+        if (currentTool === 'zoom') {
+            // Distinct click vs scrub check
+            if (!isZoomDragging) {
+                const direction = e.altKey ? -1 : 1;
+                const step = direction * 0.4; // 40% absolute step
+                let newZoom = zoomLevel * (1 + step);
+                zoomAtPoint(e.clientX, e.clientY, newZoom);
+            }
+            isZoomDragging = false;
+            
+        } else if (currentTool === 'pencil' && isDrawing) {
             isDrawing = false;
-            try { canvasStack.releasePointerCapture(e.pointerId); } catch(e) {}
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
             saveState(); // Snapshot after brushing
         }
     });
 
-    canvasStack.addEventListener('pointercancel', (e) => {
+    canvasWrapper.addEventListener('pointercancel', (e) => {
+        isPanning = false;
+        canvasStack.classList.remove('is-panning');
+        isZoomDragging = false;
+        
         if(isDrawing) {
             isDrawing = false;
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
             saveState(); 
         }
     });
+
+    // Block native scroll zooming inside the canvas wrapper mapping into browser viewport
+    canvasWrapper.addEventListener('wheel', (e) => {
+        if (currentTool === 'zoom' || e.ctrlKey || e.altKey) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
 
     // --- Actions ---
 
@@ -552,13 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLayerThumbnail(layer.id);
             
             saveState(); // Snapshot after Opening Image
-            
             URL.revokeObjectURL(objectUrl);
-            canvasStack.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                canvasStack.style.transform = 'scale(1)';
-                canvasStack.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            }, 50);
         };
         
         img.onerror = () => {
