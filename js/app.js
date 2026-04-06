@@ -14,10 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const canvasWrapper = document.querySelector('.canvas-wrapper');
     const canvasStack = document.getElementById('canvas-stack');
+    const sidebarRight = document.getElementById('sidebar-right');
     const layersList = document.getElementById('layers-list');
     const btnAddLayer = document.getElementById('btn-add-layer');
     const noImageState = document.getElementById('no-image-state');
     const toastContainer = document.getElementById('toast-container');
+    const layersResizer = document.getElementById('layers-resizer');
 
     // --- State ---
     let currentFileName = 'untitled.png';
@@ -41,8 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let zoomStartY = 0;
     let zoomStartLevel = 1.0;
 
+    // Selection State
+    let selectionMask = null;
+    let selectionOverlay = null;
+    let selectionDragOverlay = null;
+    let selectionCtx = null;
+    let selectionDragCtx = null;
+    
+    let isSelecting = false;
+    let selectStartX = 0;
+    let selectStartY = 0;
+    let selectionMode = 'replace';
+    
+    let clipboardData = null;
+
     // Layers Subsystem
-    let layers = []; // Array of { id, name, canvas, ctx }
+    let layers = []; // Array of { id, name, canvas, ctx, visible }
     let activeLayerId = null;
     let layerCounter = 0;
 
@@ -56,7 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toolPencil = document.getElementById('tool-pencil');
     const toolZoom = document.getElementById('tool-zoom');
-    const toolBtns = [toolPencil, toolZoom];
+    const toolRectSelect = document.getElementById('tool-rect-select');
+    const toolBtns = [toolPencil, toolZoom, toolRectSelect];
 
     let currentTool = null;
     let isDrawing = false;
@@ -68,6 +85,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fgColorInput.addEventListener('input', (e) => { fgColor = e.target.value; });
     bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
+
+    // --- Panel Resizer Logic ---
+    let isResizingPanel = false;
+
+    layersResizer.addEventListener('pointerdown', (e) => {
+        isResizingPanel = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+
+    document.addEventListener('pointermove', (e) => {
+        if (isResizingPanel) {
+            let newWidth = sidebarRight.getBoundingClientRect().right - e.clientX;
+            newWidth = Math.max(200, Math.min(600, newWidth));
+            sidebarRight.style.width = `${newWidth}px`;
+        }
+    });
+
+    document.addEventListener('pointerup', () => {
+        if (isResizingPanel) {
+            isResizingPanel = false;
+            document.body.style.cursor = '';
+        }
+    });
+
 
     // --- History & Toast Logic ---
     function showToast(message) {
@@ -97,10 +139,13 @@ document.addEventListener('DOMContentLoaded', () => {
             height: documentHeight,
             activeLayerId,
             layerCounter,
+            // Native highly-optimized deep array cloning
+            selectionMask: new Uint8Array(selectionMask),
             layersData: layers.map(l => {
                 return {
                     id: l.id,
                     name: l.name,
+                    visible: l.visible,
                     imgData: l.ctx.getImageData(0, 0, documentWidth, documentHeight)
                 };
             })
@@ -132,17 +177,29 @@ document.addEventListener('DOMContentLoaded', () => {
             c.id = lData.id;
             c.width = documentWidth;
             c.height = documentHeight;
+            c.style.display = lData.visible ? 'block' : 'none';
             const cx = c.getContext('2d', { willReadFrequently: true });
             
             cx.putImageData(lData.imgData, 0, 0);
             
             canvasStack.appendChild(c);
-            layers.push({ id: lData.id, name: lData.name, canvas: c, ctx: cx });
+            layers.push({ id: lData.id, name: lData.name, visible: lData.visible, canvas: c, ctx: cx });
         });
 
+        // Ensure selection canvas remains cleanly anchored at top
+        canvasStack.appendChild(selectionOverlay);
+        canvasStack.appendChild(selectionDragOverlay);
+        
         activeLayerId = state.activeLayerId;
         updateZIndices();
         renderLayersList();
+        
+        const newActive = document.getElementById(`list-item-${activeLayerId}`);
+        if (newActive) newActive.classList.add('active');
+
+        // Snapshot perfectly restored array
+        selectionMask = new Uint8Array(state.selectionMask);
+        renderSelectionVisual();
     }
 
     function undo() {
@@ -163,11 +220,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Selection Logic ---
+    function clearSelection() {
+        if (!documentCreated) return;
+        selectionMask.fill(0);
+        selectionCtx.clearRect(0, 0, documentWidth, documentHeight);
+        if (selectionDragCtx) selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+    }
+
+    function renderSelectionVisual() {
+        if (!documentCreated) return;
+        selectionCtx.clearRect(0, 0, documentWidth, documentHeight);
+        
+        let minX = documentWidth, maxX = 0;
+        let minY = documentHeight, maxY = 0;
+        let hasSelection = false;
+
+        const imgData = selectionCtx.createImageData(documentWidth, documentHeight);
+        const data = imgData.data;
+
+        for (let y = 0; y < documentHeight; y++) {
+            for (let x = 0; x < documentWidth; x++) {
+                const i = y * documentWidth + x;
+                const val = selectionMask[i];
+                if (val > 0) {
+                    hasSelection = true;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+
+                    const px = i * 4;
+                    data[px] = 92;
+                    data[px+1] = 107;
+                    data[px+2] = 255;
+                    data[px+3] = Math.floor((val / 255) * 100); 
+                }
+            }
+        }
+
+        if (!hasSelection) return;
+
+        selectionCtx.putImageData(imgData, 0, 0);
+
+        // Render alternating high-contrast pixel boundaries naturally over global viewport map
+        selectionCtx.setLineDash([5, 5]);
+        selectionCtx.lineWidth = 1;
+        
+        selectionCtx.strokeStyle = '#ffffff';
+        selectionCtx.strokeRect(minX + 0.5, minY + 0.5, (maxX - minX + 1), (maxY - minY + 1));
+        
+        selectionCtx.lineDashOffset = 5;
+        selectionCtx.strokeStyle = '#222222';
+        selectionCtx.strokeRect(minX + 0.5, minY + 0.5, (maxX - minX + 1), (maxY - minY + 1));
+        
+        selectionCtx.setLineDash([]);
+        selectionCtx.lineDashOffset = 0;
+    }
+
     // Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
-        // UI Alt tag tracking
-        if (e.key === 'Alt' && currentTool === 'zoom') {
+        if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
+
+        if (e.key === 'Alt') {
             canvasStack.classList.add('alt-down');
+        }
+        if (e.key === 'Shift') {
+            canvasStack.classList.add('shift-down');
         }
 
         if (e.ctrlKey || e.metaKey) {
@@ -181,6 +300,72 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (e.key === 'y' || e.key === 'Y') {
                 e.preventDefault();
                 redo();
+            } else if (e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                clearSelection();
+                saveState();
+            } else if (e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                selectionMask.fill(255);
+                renderSelectionVisual();
+                saveState();
+            } else if (e.key === 'i' || e.key === 'I') {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    for (let i = 0; i < selectionMask.length; i++) {
+                        selectionMask[i] = 255 - selectionMask[i];
+                    }
+                    renderSelectionVisual();
+                    saveState();
+                }
+            } else if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                const activeObj = getActiveLayerObj();
+                if (!activeObj || !activeObj.visible) {
+                    showToast("Cannot copy from hidden/missing layer");
+                    return;
+                }
+                
+                let hasSelection = false;
+                for (let i = 0; i < selectionMask.length; i++) {
+                    if (selectionMask[i] > 0) { hasSelection = true; break; }
+                }
+                
+                clipboardData = document.createElement('canvas');
+                clipboardData.width = documentWidth;
+                clipboardData.height = documentHeight;
+                const clipCtx = clipboardData.getContext('2d');
+                
+                if (!hasSelection) {
+                    clipCtx.drawImage(activeObj.canvas, 0, 0);
+                } else {
+                    const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+                    const destData = clipCtx.createImageData(documentWidth, documentHeight);
+                    for (let i = 0; i < selectionMask.length; i++) {
+                        const selAlpha = selectionMask[i];
+                        if (selAlpha > 0) {
+                            const px = i * 4;
+                            destData.data[px] = srcData.data[px];
+                            destData.data[px+1] = srcData.data[px+1];
+                            destData.data[px+2] = srcData.data[px+2];
+                            destData.data[px+3] = Math.floor((srcData.data[px+3] * selAlpha) / 255);
+                        }
+                    }
+                    clipCtx.putImageData(destData, 0, 0);
+                }
+                showToast("Copied to clipboard");
+            } else if (e.key === 'v' || e.key === 'V') {
+                e.preventDefault();
+                if (!clipboardData) {
+                    showToast("Clipboard is empty");
+                    return;
+                }
+                
+                const newLayer = createLayer('Pasted Layer');
+                newLayer.ctx.drawImage(clipboardData, 0, 0);
+                updateLayerThumbnail(newLayer.id);
+                saveState();
+                showToast("Pasted as new layer");
             }
         }
     });
@@ -188,6 +373,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keyup', (e) => {
         if (e.key === 'Alt') {
             canvasStack.classList.remove('alt-down');
+        }
+        if (e.key === 'Shift') {
+            canvasStack.classList.remove('shift-down');
         }
     });
 
@@ -223,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Tool Management ---
     function setActiveTool(toolId) {
         toolBtns.forEach(btn => btn.classList.remove('active'));
-        canvasStack.classList.remove('tool-pencil', 'tool-zoom', 'alt-down');
+        canvasStack.classList.remove('tool-pencil', 'tool-zoom', 'tool-rect-select', 'alt-down');
 
         if (currentTool === toolId) {
             currentTool = null;
@@ -237,11 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (toolId === 'zoom') {
             toolZoom.classList.add('active');
             canvasStack.classList.add('tool-zoom');
+        } else if (toolId === 'rect-select') {
+            toolRectSelect.classList.add('active');
+            canvasStack.classList.add('tool-rect-select');
         }
     }
 
     toolPencil.addEventListener('click', () => setActiveTool('pencil'));
     toolZoom.addEventListener('click', () => setActiveTool('zoom'));
+    toolRectSelect.addEventListener('click', () => setActiveTool('rect-select'));
 
     // --- Viewport Management ---
     function applyViewport() {
@@ -252,18 +444,12 @@ document.addEventListener('DOMContentLoaded', () => {
         newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
         if (newZoom === zoomLevel) return;
 
-        // Bounding rect gets the CURRENT scaled & physically translated box
         const rect = canvasStack.getBoundingClientRect();
-        
-        // Offset of mouse from top-left of the currently visually scaled canvas
         const offsetX = clientX - rect.left;
         const offsetY = clientY - rect.top;
-        
-        // Physical document coordinates
         const unscaledX = offsetX / zoomLevel;
         const unscaledY = offsetY / zoomLevel;
         
-        // Difference in scale multiplied by physical coordinates gives translate shift
         panX -= unscaledX * (newZoom - zoomLevel);
         panY -= unscaledY * (newZoom - zoomLevel);
         
@@ -291,10 +477,28 @@ document.addEventListener('DOMContentLoaded', () => {
         panX = 0;
         panY = 0;
         
+        // Initialize Core Selection Engine Math
+        selectionMask = new Uint8Array(documentWidth * documentHeight);
+        
+        if (selectionOverlay) selectionOverlay.remove();
+        selectionOverlay = document.createElement('canvas');
+        selectionOverlay.id = 'selection-overlay';
+        selectionOverlay.width = documentWidth;
+        selectionOverlay.height = documentHeight;
+        selectionCtx = selectionOverlay.getContext('2d');
+        canvasStack.appendChild(selectionOverlay);
+
+        if (selectionDragOverlay) selectionDragOverlay.remove();
+        selectionDragOverlay = document.createElement('canvas');
+        selectionDragOverlay.id = 'selection-drag-overlay';
+        selectionDragOverlay.width = documentWidth;
+        selectionDragOverlay.height = documentHeight;
+        selectionDragCtx = selectionDragOverlay.getContext('2d');
+        canvasStack.appendChild(selectionDragOverlay);
+
         canvasStack.classList.add('active');
         canvasStack.style.width = `${w}px`;
         canvasStack.style.height = `${h}px`;
-        // Top-left origin is critical for exact mouse cursor coordinate tracking 
         canvasStack.style.transformOrigin = '0 0';
         applyViewport();
         
@@ -304,13 +508,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!skipBaseLayer) {
             createLayer('Background');
-            saveState(); // Snapshot 0
+            saveState();
         }
     }
 
     function setActiveLayer(id) {
+        if (activeLayerId === id) return;
         activeLayerId = id;
-        renderLayersList();
+        
+        const items = layersList.querySelectorAll('.layer-item');
+        items.forEach(item => {
+            if (item.id === `list-item-${id}`) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
     }
 
     function getActiveLayerObj() {
@@ -331,10 +544,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
         canvasStack.appendChild(c);
         
-        const layerObj = { id, name, canvas: c, ctx: cx };
+        // Selection visualization natively drops behind top layers conceptually 
+        // to render on very top, we re-append it after standard DOM flow
+        canvasStack.appendChild(selectionOverlay);
+        canvasStack.appendChild(selectionDragOverlay);
+        
+        const layerObj = { id, name, canvas: c, ctx: cx, visible: true };
         layers.unshift(layerObj);
         
         updateZIndices();
+        renderLayersList();
         setActiveLayer(id);
         return layerObj;
     }
@@ -348,10 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
         layerObj.canvas.remove();
         layers = layers.filter(l => l.id !== id);
         
+        renderLayersList();
         if (activeLayerId === id) {
             setActiveLayer(layers[0].id);
-        } else {
-            renderLayersList();
         }
         return true;
     }
@@ -380,8 +598,26 @@ document.addEventListener('DOMContentLoaded', () => {
         layers.forEach((layer) => {
             const item = document.createElement('div');
             item.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
+            if (!layer.visible) {
+                item.classList.add('hidden-layer');
+            }
             item.id = `list-item-${layer.id}`;
             item.draggable = true;
+
+            const visBtn = document.createElement('button');
+            visBtn.className = 'btn-icon';
+            visBtn.title = 'Toggle Visibility';
+            visBtn.innerHTML = layer.visible ? `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            ` : `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+            `;
 
             const tcvs = document.createElement('canvas');
             tcvs.className = 'layer-thumb';
@@ -391,6 +627,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.createElement('span');
             title.className = 'layer-name';
             title.textContent = layer.name;
+
+            const actionsGroup = document.createElement('div');
+            actionsGroup.className = 'item-actions';
+
+            const dupBtn = document.createElement('button');
+            dupBtn.className = 'btn-icon';
+            dupBtn.title = 'Duplicate Layer';
+            dupBtn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            `;
 
             const delBtn = document.createElement('button');
             delBtn.className = 'btn-icon';
@@ -403,13 +652,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 </svg>
             `;
 
+            actionsGroup.appendChild(dupBtn);
+            actionsGroup.appendChild(delBtn);
+
+            item.appendChild(visBtn);
             item.appendChild(tcvs);
             item.appendChild(title);
-            item.appendChild(delBtn);
+            item.appendChild(actionsGroup);
 
-            item.addEventListener('click', (e) => {
-                if (delBtn.contains(e.target)) return;
-                setActiveLayer(layer.id);
+            visBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                layer.visible = !layer.visible;
+                layer.canvas.style.display = layer.visible ? 'block' : 'none';
+                saveState();
+                renderLayersList();
+            });
+
+            dupBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = layers.findIndex(l => l.id === layer.id);
+                const newLayer = createLayer(layer.name + ' copy');
+                const createdLayerObj = layers.shift();
+                layers.splice(idx, 0, createdLayerObj);
+                
+                createdLayerObj.ctx.drawImage(layer.canvas, 0, 0);
+                
+                updateZIndices();
+                renderLayersList();
+                setActiveLayer(createdLayerObj.id);
+                saveState();
             });
 
             delBtn.addEventListener('click', (e) => {
@@ -419,8 +690,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Drag capabilities
+            item.addEventListener('click', (e) => {
+                if (delBtn.contains(e.target) || visBtn.contains(e.target) || dupBtn.contains(e.target)) return;
+                setActiveLayer(layer.id);
+            });
+
+            title.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                title.contentEditable = true;
+                setTimeout(() => {
+                    title.focus();
+                    const range = document.createRange();
+                    range.selectNodeContents(title);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }, 0);
+            });
+
+            function saveTitle() {
+                title.contentEditable = false;
+                const newName = title.textContent.trim() || 'Layer';
+                if (newName !== layer.name) {
+                    layer.name = newName;
+                    saveState();
+                }
+                title.textContent = layer.name; 
+            }
+
+            title.addEventListener('blur', saveTitle);
+            title.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    title.blur();
+                }
+            });
+
             item.addEventListener('dragstart', (e) => {
+                if (title.contentEditable === 'true') {
+                    e.preventDefault();
+                    return;
+                }
                 draggedLayerId = layer.id;
                 e.dataTransfer.effectAllowed = 'move';
                 setTimeout(() => item.style.opacity = '0.5', 0);
@@ -502,7 +812,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Drawing Engine (Bresenham) ---
     function getCanvasCoords(e) {
         const rect = canvasStack.getBoundingClientRect();
-        // Since BoundingClientRect natively accounts for the CSS transform matrix, scaling is automatically mapped
         const scaleX = documentWidth / rect.width;
         const scaleY = documentHeight / rect.height;
         return {
@@ -513,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawPixelBresenham(x0, y0, x1, y1) {
         const activeObj = getActiveLayerObj();
-        if (!activeObj) return;
+        if (!activeObj || !activeObj.visible) return;
         const _ctx = activeObj.ctx;
 
         _ctx.fillStyle = fgColor;
@@ -532,12 +841,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Capture pointers directly on the viewport wrapper so drawing/panning/zooming tracks outside bounds seamlessly
     canvasWrapper.addEventListener('pointerdown', (e) => {
         if (!documentCreated) return;
         
-        // Middle mouse button (button 1) triggers Panning natively
-        if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil')) {
+        if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select')) {
             isPanning = true;
             panStartX = e.clientX;
             panStartY = e.clientY;
@@ -552,7 +859,23 @@ document.addEventListener('DOMContentLoaded', () => {
             zoomStartY = e.clientY;
             zoomStartLevel = zoomLevel;
             canvasWrapper.setPointerCapture(e.pointerId);
+        } else if (currentTool === 'rect-select') {
+            isSelecting = true;
+            if (e.altKey && !e.shiftKey) {
+                selectionMode = 'subtract';
+            } else if (e.shiftKey && !e.altKey) {
+                selectionMode = 'add';
+            } else {
+                selectionMode = 'replace';
+            }
+            const coords = getCanvasCoords(e);
+            selectStartX = coords.x;
+            selectStartY = coords.y;
+            canvasWrapper.setPointerCapture(e.pointerId);
         } else if (currentTool === 'pencil') {
+            const activeObj = getActiveLayerObj();
+            if(!activeObj || !activeObj.visible) return;
+
             isDrawing = true;
             const coords = getCanvasCoords(e);
             lastX = coords.x;
@@ -580,10 +903,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const dx = e.clientX - zoomStartX;
             if (Math.abs(dx) > 2) {
                 isZoomDragging = true;
-                // Scrubby zoom function maps X mouse tracking to exponential multi-scale
                 const newZoom = zoomStartLevel * Math.pow(1.01, dx);
                 zoomAtPoint(zoomStartX, zoomStartY, newZoom);
             }
+        } else if (currentTool === 'rect-select' && isSelecting) {
+            const coords = getCanvasCoords(e);
+            const x0 = Math.min(selectStartX, coords.x);
+            const y0 = Math.min(selectStartY, coords.y);
+            const x1 = Math.max(selectStartX, coords.x);
+            const y1 = Math.max(selectStartY, coords.y);
+            
+            selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+            selectionDragCtx.fillStyle = selectionMode === 'subtract' 
+                ? 'rgba(255, 50, 50, 0.4)' 
+                : 'rgba(92, 107, 255, 0.4)';
+            selectionDragCtx.fillRect(x0, y0, x1 - x0, y1 - y0);
+            
+            selectionDragCtx.setLineDash([5, 5]);
+            selectionDragCtx.lineDashOffset = 0;
+            selectionDragCtx.lineWidth = 1;
+            
+            selectionDragCtx.strokeStyle = '#ffffff';
+            selectionDragCtx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
+            
+            selectionDragCtx.lineDashOffset = 5;
+            selectionDragCtx.strokeStyle = '#222222';
+            selectionDragCtx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
+            selectionDragCtx.setLineDash([]);
+            selectionDragCtx.lineDashOffset = 0;
+            
         } else if (currentTool === 'pencil' && isDrawing) {
             const coords = getCanvasCoords(e);
             drawPixelBresenham(lastX, lastY, coords.x, coords.y);
@@ -604,19 +952,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (currentTool === 'zoom') {
-            // Distinct click vs scrub check
             if (!isZoomDragging) {
                 const direction = e.altKey ? -1 : 1;
-                const step = direction * 0.4; // 40% absolute step
+                const step = direction * 0.4;
                 let newZoom = zoomLevel * (1 + step);
                 zoomAtPoint(e.clientX, e.clientY, newZoom);
             }
             isZoomDragging = false;
             
+        } else if (currentTool === 'rect-select' && isSelecting) {
+            isSelecting = false;
+            selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+
+            const coords = getCanvasCoords(e);
+            
+            const xMinRaw = Math.min(selectStartX, coords.x);
+            const yMinRaw = Math.min(selectStartY, coords.y);
+            const xMaxRaw = Math.max(selectStartX, coords.x);
+            const yMaxRaw = Math.max(selectStartY, coords.y);
+            
+            const x0 = Math.max(0, Math.min(documentWidth, xMinRaw));
+            const y0 = Math.max(0, Math.min(documentHeight, yMinRaw));
+            const x1 = Math.max(0, Math.min(documentWidth, xMaxRaw));
+            const y1 = Math.max(0, Math.min(documentHeight, yMaxRaw));
+            
+            if (selectionMode === 'replace') {
+                selectionMask.fill(0);
+            }
+            
+            if (x1 > x0 && y1 > y0) {
+                for (let y = y0; y < y1; y++) {
+                    const rowOffset = y * documentWidth;
+                    if (selectionMode === 'subtract') {
+                        selectionMask.fill(0, rowOffset + x0, rowOffset + x1);
+                    } else {
+                        selectionMask.fill(255, rowOffset + x0, rowOffset + x1);
+                    }
+                }
+            }
+            
+            renderSelectionVisual();
+            saveState();
+            
         } else if (currentTool === 'pencil' && isDrawing) {
             isDrawing = false;
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
-            saveState(); // Snapshot after brushing
+            saveState();
         }
     });
 
@@ -625,6 +1006,12 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasStack.classList.remove('is-panning');
         isZoomDragging = false;
         
+        if (isSelecting) {
+            isSelecting = false;
+            selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+            renderSelectionVisual();
+        }
+        
         if(isDrawing) {
             isDrawing = false;
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
@@ -632,7 +1019,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Block native scroll zooming inside the canvas wrapper mapping into browser viewport
     canvasWrapper.addEventListener('wheel', (e) => {
         if (currentTool === 'zoom' || e.ctrlKey || e.altKey) {
             e.preventDefault();
@@ -681,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
             layer.ctx.drawImage(img, 0, 0);
             updateLayerThumbnail(layer.id);
             
-            saveState(); // Snapshot after Opening Image
+            saveState();
             URL.revokeObjectURL(objectUrl);
         };
         
@@ -703,7 +1089,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const outputCtx = outputCanvas.getContext('2d');
         
         for (let i = layers.length - 1; i >= 0; i--) {
-            outputCtx.drawImage(layers[i].canvas, 0, 0);
+            if(layers[i].visible) {
+                outputCtx.drawImage(layers[i].canvas, 0, 0);
+            }
         }
 
         if ('showSaveFilePicker' in window && window.isSecureContext) {

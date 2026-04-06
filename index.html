@@ -43,6 +43,11 @@
                             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                         </svg>
                     </button>
+                    <button class="tool-btn" id="tool-rect-select" title="Rectangular Marquee Tool (M)" data-tool="rect-select">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-dasharray="3 3">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        </svg>
+                    </button>
                     <button class="tool-btn" id="tool-zoom" title="Zoom Tool (Z)" data-tool="zoom">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
@@ -74,6 +79,7 @@
             </main>
 
             <aside id="sidebar-right" class="layers-panel">
+                <div id="layers-resizer" class="panel-resizer"></div>
                 <div class="panel-header">
                     <h3 class="panel-title">Layers</h3>
                     <button class="tool-btn" id="btn-add-layer" title="New Layer" disabled>
