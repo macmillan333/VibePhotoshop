@@ -3,28 +3,28 @@
     --bg-dark: #121217;
     --bg-surface: #1C1C23;
     --bg-elevated: #2A2A35;
-    
+
     --border-color: #353545;
     --border-light: rgba(255, 255, 255, 0.1);
-    
+
     --accent: #5C6BFF;
     --accent-hover: #717EFF;
     --accent-active: #4856E6;
-    
+
     --text-primary: #EDEDF5;
     --text-secondary: #9090A6;
     --text-muted: #606075;
-    
+
     /* Effects and Dimensions */
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-    --shadow-lg: 0 10px 40px rgba(0,0,0,0.5);
-    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 14px;
     --radius-pill: 9999px;
-    
+
     --font-family: 'Inter', system-ui, -apple-system, sans-serif;
     --transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -96,7 +96,8 @@ body {
     transition: background-color var(--transition);
 }
 
-.menu-trigger:hover, .menu-trigger.active {
+.menu-trigger:hover,
+.menu-trigger.active {
     background-color: var(--bg-elevated);
 }
 
@@ -230,7 +231,7 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 16px 0;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     z-index: 5;
 }
 
@@ -261,7 +262,8 @@ body {
 
 .tool-btn.active {
     color: var(--accent);
-    background-color: rgba(92, 107, 255, 0.15); /* Light accent background */
+    background-color: rgba(92, 107, 255, 0.15);
+    /* Light accent background */
 }
 
 .color-picker-widget {
@@ -276,8 +278,9 @@ body {
     width: 22px;
     height: 22px;
     border-radius: 2px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    border: 1px solid var(--bg-dark); /* acts as a strong separator */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--bg-dark);
+    /* acts as a strong separator */
     overflow: hidden;
 }
 
@@ -322,8 +325,10 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #0d0d10; /* Darker background for contrast with surface elements */
-    overflow: hidden; /* Scroll later if we add zoom */
+    background-color: #0d0d10;
+    /* Darker background for contrast with surface elements */
+    overflow: hidden;
+    /* Scroll later if we add zoom */
     padding: 32px;
 }
 
@@ -341,7 +346,8 @@ body {
 #canvas-stack {
     position: relative;
     box-shadow: var(--shadow-lg);
-    display: none; /* Hidden until document is created */
+    display: none;
+    /* Hidden until document is created */
     border-radius: 4px;
     background-image:
         linear-gradient(45deg, #1A1A23 25%, transparent 25%),
@@ -370,28 +376,8 @@ body {
     image-rendering: pixelated;
 }
 
-#canvas-stack.tool-pencil,
-#canvas-stack.tool-rect-select {
+#canvas-stack.tool-pencil {
     cursor: crosshair;
-}
-
-#canvas-stack.tool-rect-select.shift-down {
-    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M18 16v8M14 20h8" stroke="white" stroke-width="3"/><path d="M18 16v8M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
-}
-
-#canvas-stack.tool-rect-select.alt-down {
-    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M14 20h8" stroke="white" stroke-width="3"/><path d="M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
-}
-
-#selection-overlay,
-#selection-drag-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100000;
-    pointer-events: none;
 }
 
 #canvas-stack.tool-zoom {
@@ -414,20 +400,7 @@ body {
     display: flex;
     flex-direction: column;
     z-index: 5;
-    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-    position: relative;
-    min-width: 200px;
-    max-width: 600px;
-}
-
-.panel-resizer {
-    position: absolute;
-    left: -3px;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: col-resize;
-    z-index: 10;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
 }
 
 .panel-header {
@@ -511,13 +484,7 @@ body {
     background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
     border: 1px solid var(--border-color);
     border-radius: 2px;
-    margin-right: 8px;
-    margin-left: 4px;
-    transition: opacity 0.2s;
-}
-
-.layer-item.hidden-layer .layer-thumb {
-    opacity: 0.3;
+    margin-right: 12px;
 }
 
 .layer-name {
@@ -527,21 +494,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 2px 4px;
-    border-radius: 2px;
-    border: 1px solid transparent;
-}
-
-.layer-name[contenteditable="true"] {
-    background-color: var(--bg-dark);
-    border-color: var(--accent);
-    outline: none;
-    cursor: text;
-}
-
-.item-actions {
-    display: flex;
-    gap: 2px;
 }
 
 #no-image-state {
@@ -573,6 +525,7 @@ body {
     padding: 24px;
     width: 360px;
 }
+
 .modal::backdrop {
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
@@ -650,3 +603,167 @@ body {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* --- Restored Tool & Selection CSS --- */
+#canvas-stack.tool-move {
+    cursor: move;
+}
+
+#canvas-stack.tool-pencil,
+#canvas-stack.tool-rect-select {
+    cursor: crosshair;
+}
+
+#canvas-stack.tool-rect-select.shift-down {
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M18 16v8M14 20h8" stroke="white" stroke-width="3"/><path d="M18 16v8M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
+}
+
+#canvas-stack.tool-rect-select.alt-down {
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M14 20h8" stroke="white" stroke-width="3"/><path d="M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
+}
+
+#selection-overlay,
+#selection-drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100000;
+    pointer-events: none;
+}
+
+/* --- Restored Layers Panel Layout CSS --- */
+.layers-panel {
+    position: relative;
+    min-width: 200px;
+    max-width: 600px;
+}
+
+.panel-resizer {
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 10;
+}
+
+.layer-item.hidden-layer .layer-thumb {
+    opacity: 0.3;
+}
+
+.layer-name[contenteditable="true"] {
+    background-color: var(--bg-dark);
+    border-color: var(--accent);
+    outline: none;
+    cursor: text;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.item-actions {
+    display: flex;
+    gap: 2px;
+}
+
+/* --- Phase 12 Modals CSS --- */
+.anchor-section {
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.anchor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+    gap: 4px;
+    background-color: var(--bg-dark);
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.anchor-btn {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.anchor-btn:hover {
+    background-color: var(--border-color);
+}
+
+.anchor-btn.active {
+    background-color: var(--accent);
+    border-color: var(--text-primary);
+}
+
+/* --- Phase 13 Free Transform --- */
+#transform-box {
+    position: absolute;
+    border: 1px dashed var(--accent);
+    box-sizing: border-box;
+    z-index: 100001; 
+    cursor: move;
+    transform-origin: center center;
+}
+
+#transform-box.hidden {
+    display: none;
+}
+
+#transform-content {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+.rotation-zone {
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    right: -30px;
+    bottom: -30px;
+    z-index: -1;
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l-3 2.77" stroke="white" stroke-width="4"/><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l-3 2.77"/></svg>') 12 12, crosshair;
+}
+
+.move-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: move;
+}
+
+.handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    z-index: 2;
+}
+
+.handle.top-left { top: -6px; left: -6px; cursor: nw-resize; }
+.handle.top-center { top: -6px; left: calc(50% - 6px); cursor: n-resize; }
+.handle.top-right { top: -6px; right: -6px; cursor: ne-resize; }
+.handle.center-left { top: calc(50% - 6px); left: -6px; cursor: w-resize; }
+.handle.center-right { top: calc(50% - 6px); right: -6px; cursor: e-resize; }
+.handle.bottom-left { bottom: -6px; left: -6px; cursor: sw-resize; }
+.handle.bottom-center { bottom: -6px; left: calc(50% - 6px); cursor: s-resize; }
+.handle.bottom-right { bottom: -6px; right: -6px; cursor: se-resize; }

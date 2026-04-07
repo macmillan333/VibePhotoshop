@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
     <div id="app">
         <header class="toolbar">
@@ -29,6 +31,20 @@
                         <button class="dropdown-item" id="btn-save" disabled>Save As...</button>
                     </div>
                 </div>
+                <div class="menu-item" id="menu-edit">
+                    <button class="menu-trigger" id="edit-menu-btn">Edit</button>
+                    <div class="dropdown-menu hidden" id="edit-dropdown">
+                        <button class="dropdown-item" id="btn-undo" disabled>Undo (Ctrl+Z)</button>
+                        <button class="dropdown-item" id="btn-redo" disabled>Redo (Ctrl+Y)</button>
+                        <hr class="menu-divider">
+                        <button class="dropdown-item" id="btn-image-size" disabled>Image Size...</button>
+                        <button class="dropdown-item" id="btn-canvas-size" disabled>Canvas Size...</button>
+                        <hr class="menu-divider">
+                        <button class="dropdown-item" id="btn-flip-h" disabled>Flip Horizontal</button>
+                        <button class="dropdown-item" id="btn-flip-v" disabled>Flip Vertical</button>
+                        <button class="dropdown-item" id="btn-free-transform" disabled>Free Transform... (Ctrl+Alt+T)</button>
+                    </div>
+                </div>
                 <!-- Hidden file input -->
                 <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp" hidden>
             </div>
@@ -38,8 +54,19 @@
             <aside id="sidebar-tools">
                 <div class="tools-top">
                     <!-- Future tools go here -->
+                    <button class="tool-btn" id="tool-move" title="Move Tool (V)" data-tool="move">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                            <polyline points="5 9 2 12 5 15"></polyline>
+                            <polyline points="9 5 12 2 15 5"></polyline>
+                            <polyline points="19 9 22 12 19 15"></polyline>
+                            <polyline points="9 19 12 22 15 19"></polyline>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <line x1="12" y1="2" x2="12" y2="22"></line>
+                        </svg>
+                    </button>
                     <button class="tool-btn" id="tool-pencil" title="Pencil Tool (P)" data-tool="pencil">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                         </svg>
                     </button>
@@ -49,7 +76,8 @@
                         </svg>
                     </button>
                     <button class="tool-btn" id="tool-zoom" title="Zoom Tool (Z)" data-tool="zoom">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             <line x1="11" y1="8" x2="11" y2="14"></line>
@@ -71,6 +99,21 @@
                 <div class="canvas-wrapper">
                     <div id="canvas-stack">
                         <!-- Layer canvases injected dynamically here -->
+                        <div id="transform-box" class="hidden">
+                            <canvas id="transform-content"></canvas>
+                            <div class="rotation-zone"></div>
+                            <div class="move-zone"></div>
+                            
+                            <!-- 8 handles -->
+                            <div class="handle top-left" data-handle="tl"></div>
+                            <div class="handle top-center" data-handle="tc"></div>
+                            <div class="handle top-right" data-handle="tr"></div>
+                            <div class="handle center-left" data-handle="cl"></div>
+                            <div class="handle center-right" data-handle="cr"></div>
+                            <div class="handle bottom-left" data-handle="bl"></div>
+                            <div class="handle bottom-center" data-handle="bc"></div>
+                            <div class="handle bottom-right" data-handle="br"></div>
+                        </div>
                     </div>
                     <div id="no-image-state">
                         <p>Open an image to start editing</p>
@@ -83,7 +126,8 @@
                 <div class="panel-header">
                     <h3 class="panel-title">Layers</h3>
                     <button class="tool-btn" id="btn-add-layer" title="New Layer" disabled>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
@@ -118,7 +162,60 @@
         </form>
     </dialog>
 
+    <dialog id="image-size-modal" class="modal">
+        <form method="dialog" id="image-size-form">
+            <h2>Image Size</h2>
+            <div class="form-group">
+                <label for="image-size-width">Width (px)</label>
+                <input type="number" id="image-size-width" name="width" min="1" max="10000" required>
+            </div>
+            <div class="form-group">
+                <label for="image-size-height">Height (px)</label>
+                <input type="number" id="image-size-height" name="height" min="1" max="10000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-image-size">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="canvas-size-modal" class="modal">
+        <form method="dialog" id="canvas-size-form">
+            <h2>Canvas Size</h2>
+            <div class="form-group">
+                <label for="resize-canvas-width">Width (px)</label>
+                <input type="number" id="resize-canvas-width" name="width" min="1" max="10000" required>
+            </div>
+            <div class="form-group">
+                <label for="resize-canvas-height">Height (px)</label>
+                <input type="number" id="resize-canvas-height" name="height" min="1" max="10000" required>
+            </div>
+            
+            <div class="anchor-section">
+                <label>Anchor Location</label>
+                <div class="anchor-grid" id="anchor-grid-selector">
+                    <button type="button" class="anchor-btn" data-anchor="top-left"></button>
+                    <button type="button" class="anchor-btn" data-anchor="top-center"></button>
+                    <button type="button" class="anchor-btn" data-anchor="top-right"></button>
+                    <button type="button" class="anchor-btn" data-anchor="center-left"></button>
+                    <button type="button" class="anchor-btn active" data-anchor="center"></button>
+                    <button type="button" class="anchor-btn" data-anchor="center-right"></button>
+                    <button type="button" class="anchor-btn" data-anchor="bottom-left"></button>
+                    <button type="button" class="anchor-btn" data-anchor="bottom-center"></button>
+                    <button type="button" class="anchor-btn" data-anchor="bottom-right"></button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-canvas-size">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
     <!-- Since we aren't using a server, standard script is best to prevent CORS module issues -->
     <script src="js/app.js"></script>
 </body>
+
 </html>
