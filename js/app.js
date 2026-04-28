@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const fileMenuBtn = document.getElementById('file-menu-btn');
     const fileDropdown = document.getElementById('file-dropdown');
-    
+
     const btnNew = document.getElementById('btn-new');
     const btnOpen = document.getElementById('btn-open');
     const btnSave = document.getElementById('btn-save');
     const fileInput = document.getElementById('file-input');
-    
+
     const editMenuBtn = document.getElementById('edit-menu-btn');
     const editDropdown = document.getElementById('edit-dropdown');
     const btnUndo = document.getElementById('btn-undo');
@@ -18,17 +18,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnFlipV = document.getElementById('btn-flip-v');
     const btnFreeTransform = document.getElementById('btn-free-transform');
 
+    const layerContextMenu = document.getElementById('layer-context-menu');
+    const ctxDuplicateLayer = document.getElementById('ctx-duplicate-layer');
+    const ctxMergeSelected = document.getElementById('ctx-merge-selected');
+    const ctxDeleteLayer = document.getElementById('ctx-delete-layer');
+
     const transformBox = document.getElementById('transform-box');
     const transformContentCanvas = document.getElementById('transform-content');
 
     const newCanvasModal = document.getElementById('new-canvas-modal');
     const newCanvasForm = document.getElementById('new-canvas-form');
     const btnCancelNew = document.getElementById('btn-cancel-new');
-    
+
     const imageSizeModal = document.getElementById('image-size-modal');
     const imageSizeForm = document.getElementById('image-size-form');
     const btnCancelImageSize = document.getElementById('btn-cancel-image-size');
-    
+
     const canvasSizeModal = document.getElementById('canvas-size-modal');
     const canvasSizeForm = document.getElementById('canvas-size-form');
     const btnCancelCanvasSize = document.getElementById('btn-cancel-canvas-size');
@@ -55,11 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let zoomLevel = 1.0;
     let panX = 0;
     let panY = 0;
-    
+
     let isPanning = false;
     let panStartX = 0;
     let panStartY = 0;
-    
+
     let isZoomDragging = false;
     let zoomStartX = 0;
     let zoomStartY = 0;
@@ -71,14 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectionDragOverlay = null;
     let selectionCtx = null;
     let selectionDragCtx = null;
-    
+
     let isSelecting = false;
     let selectStartX = 0;
     let selectStartY = 0;
     let selectionMode = 'replace';
-    
+
     let clipboardData = null;
-    
+
     // Transform Engine
     let isTransforming = false;
     let transformBaseX = 0, transformBaseY = 0;
@@ -106,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let layers = []; // Array of { id, name, canvas, ctx, visible }
     let activeLayerId = null;
     let layerCounter = 0;
+    let selectedLayerIds = new Set();
+    let lastClickedLayerId = null;
 
     // History Subsystem (Undo/Redo)
     let history = [];
@@ -163,10 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.className = 'toast';
         toast.textContent = message;
         toastContainer.appendChild(toast);
-        
+
         void toast.offsetWidth; // trigger reflow
         toast.classList.add('show');
-        
+
         setTimeout(() => {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
@@ -175,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveState() {
         if (!documentCreated) return;
-        
+
         if (historyIndex < history.length - 1) {
             history = history.slice(0, historyIndex + 1);
         }
@@ -209,15 +216,15 @@ document.addEventListener('DOMContentLoaded', () => {
         layers.forEach(l => l.canvas.remove());
         layersList.innerHTML = '';
         layers = [];
-        
+
         documentWidth = state.width;
         documentHeight = state.height;
         layerCounter = state.layerCounter;
-        
+
         canvasStack.style.width = `${documentWidth}px`;
         canvasStack.style.height = `${documentHeight}px`;
         canvasStack.style.aspectRatio = `${documentWidth} / ${documentHeight}`;
-        
+
         state.layersData.forEach(lData => {
             const c = document.createElement('canvas');
             c.id = lData.id;
@@ -225,9 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
             c.height = documentHeight;
             c.style.display = lData.visible ? 'block' : 'none';
             const cx = c.getContext('2d', { willReadFrequently: true });
-            
+
             cx.putImageData(lData.imgData, 0, 0);
-            
+
             canvasStack.appendChild(c);
             layers.push({ id: lData.id, name: lData.name, visible: lData.visible, canvas: c, ctx: cx });
         });
@@ -236,11 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasStack.appendChild(selectionOverlay);
         canvasStack.appendChild(selectionDragOverlay);
         canvasStack.appendChild(transformBox);
-        
+
         activeLayerId = state.activeLayerId;
         updateZIndices();
         renderLayersList();
-        
+
         const newActive = document.getElementById(`list-item-${activeLayerId}`);
         if (newActive) newActive.classList.add('active');
 
@@ -278,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSelectionVisual() {
         if (!documentCreated) return;
         selectionCtx.clearRect(0, 0, documentWidth, documentHeight);
-        
+
         let minX = documentWidth, maxX = 0;
         let minY = documentHeight, maxY = 0;
         let hasSelection = false;
@@ -299,9 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const px = i * 4;
                     data[px] = 92;
-                    data[px+1] = 107;
-                    data[px+2] = 255;
-                    data[px+3] = Math.floor((val / 255) * 100); 
+                    data[px + 1] = 107;
+                    data[px + 2] = 255;
+                    data[px + 3] = Math.floor((val / 255) * 100);
                 }
             }
         }
@@ -313,14 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render alternating high-contrast pixel boundaries naturally over global viewport map
         selectionCtx.setLineDash([5, 5]);
         selectionCtx.lineWidth = 1;
-        
+
         selectionCtx.strokeStyle = '#ffffff';
         selectionCtx.strokeRect(minX + 0.5, minY + 0.5, (maxX - minX + 1), (maxY - minY + 1));
-        
+
         selectionCtx.lineDashOffset = 5;
         selectionCtx.strokeStyle = '#222222';
         selectionCtx.strokeRect(minX + 0.5, minY + 0.5, (maxX - minX + 1), (maxY - minY + 1));
-        
+
         selectionCtx.setLineDash([]);
         selectionCtx.lineDashOffset = 0;
     }
@@ -372,17 +379,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Cannot copy from hidden/missing layer");
                     return;
                 }
-                
+
                 let hasSelection = false;
                 for (let i = 0; i < selectionMask.length; i++) {
                     if (selectionMask[i] > 0) { hasSelection = true; break; }
                 }
-                
+
                 clipboardData = document.createElement('canvas');
                 clipboardData.width = documentWidth;
                 clipboardData.height = documentHeight;
                 const clipCtx = clipboardData.getContext('2d');
-                
+
                 if (!hasSelection) {
                     clipCtx.drawImage(activeObj.canvas, 0, 0);
                 } else {
@@ -393,9 +400,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (selAlpha > 0) {
                             const px = i * 4;
                             destData.data[px] = srcData.data[px];
-                            destData.data[px+1] = srcData.data[px+1];
-                            destData.data[px+2] = srcData.data[px+2];
-                            destData.data[px+3] = Math.floor((srcData.data[px+3] * selAlpha) / 255);
+                            destData.data[px + 1] = srcData.data[px + 1];
+                            destData.data[px + 2] = srcData.data[px + 2];
+                            destData.data[px + 3] = Math.floor((srcData.data[px + 3] * selAlpha) / 255);
                         }
                     }
                     clipCtx.putImageData(destData, 0, 0);
@@ -407,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("Clipboard is empty");
                     return;
                 }
-                
+
                 const newLayer = createLayer('Pasted Layer');
                 newLayer.ctx.drawImage(clipboardData, 0, 0);
                 updateLayerThumbnail(newLayer.id);
@@ -443,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
         toggleMenu(fileMenuBtn, fileDropdown);
     });
-    
+
     editMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
@@ -465,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fileDropdown.classList.add('hidden');
         fileMenuBtn.classList.remove('active');
     });
-    
+
     editDropdown.addEventListener('click', () => {
         editDropdown.classList.add('hidden');
         editMenuBtn.classList.remove('active');
@@ -516,10 +523,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const offsetY = clientY - rect.top;
         const unscaledX = offsetX / zoomLevel;
         const unscaledY = offsetY / zoomLevel;
-        
+
         panX -= unscaledX * (newZoom - zoomLevel);
         panY -= unscaledY * (newZoom - zoomLevel);
-        
+
         zoomLevel = newZoom;
         applyViewport();
     }
@@ -530,23 +537,25 @@ document.addEventListener('DOMContentLoaded', () => {
         documentWidth = w;
         documentHeight = h;
         documentCreated = true;
-        
+
         Array.from(canvasStack.querySelectorAll('.layer-canvas')).forEach(el => el.remove());
         layersList.innerHTML = '';
         layers = [];
         layerCounter = 0;
         activeLayerId = null;
+        selectedLayerIds.clear();
+        lastClickedLayerId = null;
         history = [];
         historyIndex = -1;
-        
+
         // Reset Viewport
         zoomLevel = 1.0;
         panX = 0;
         panY = 0;
-        
+
         // Initialize Core Selection Engine Math
         selectionMask = new Uint8Array(documentWidth * documentHeight);
-        
+
         if (selectionOverlay) selectionOverlay.remove();
         selectionOverlay = document.createElement('canvas');
         selectionOverlay.id = 'selection-overlay';
@@ -569,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasStack.style.height = `${h}px`;
         canvasStack.style.transformOrigin = '0 0';
         applyViewport();
-        
+
         noImageState.classList.add('hidden');
         btnSave.removeAttribute('disabled');
         btnAddLayer.removeAttribute('disabled');
@@ -588,15 +597,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setActiveLayer(id) {
-        if (activeLayerId === id) return;
-        activeLayerId = id;
-        
+        if (activeLayerId !== id) {
+            activeLayerId = id;
+        }
+
         const items = layersList.querySelectorAll('.layer-item');
         items.forEach(item => {
-            if (item.id === `list-item-${id}`) {
+            const itemId = item.id.replace('list-item-', '');
+            if (itemId === id) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
+            }
+
+            if (selectedLayerIds.has(itemId)) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
             }
         });
     }
@@ -610,23 +627,27 @@ document.addEventListener('DOMContentLoaded', () => {
     function createLayer(name = `Layer ${layerCounter + 1}`) {
         layerCounter++;
         const id = `layer-${layerCounter}`;
-        
+
         const c = document.createElement('canvas');
         c.id = id;
         c.width = documentWidth;
         c.height = documentHeight;
         const cx = c.getContext('2d', { willReadFrequently: true });
-        
+
         canvasStack.appendChild(c);
-        
+
         // Selection visualization natively drops behind top layers conceptually 
         // to render on very top, we re-append it after standard DOM flow
         canvasStack.appendChild(selectionOverlay);
         canvasStack.appendChild(selectionDragOverlay);
-        
+
         const layerObj = { id, name, canvas: c, ctx: cx, visible: true };
         layers.unshift(layerObj);
-        
+
+        selectedLayerIds.clear();
+        selectedLayerIds.add(id);
+        lastClickedLayerId = id;
+
         updateZIndices();
         renderLayersList();
         setActiveLayer(id);
@@ -635,16 +656,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function deleteLayer(id) {
         if (layers.length <= 1) return false;
-        
+
         const layerObj = layers.find(l => l.id === id);
         if (!layerObj) return false;
-        
+
         layerObj.canvas.remove();
         layers = layers.filter(l => l.id !== id);
-        
+
         renderLayersList();
+
         if (activeLayerId === id) {
-            setActiveLayer(layers[0].id);
+            const newTopId = layers[0].id;
+            selectedLayerIds.clear();
+            selectedLayerIds.add(newTopId);
+            lastClickedLayerId = newTopId;
+            setActiveLayer(newTopId);
+        } else if (selectedLayerIds.has(id)) {
+            selectedLayerIds.delete(id);
+            if (selectedLayerIds.size === 0) {
+                selectedLayerIds.add(activeLayerId);
+            }
+            setActiveLayer(activeLayerId);
         }
         return true;
     }
@@ -658,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateLayerThumbnail(layerId) {
         const item = document.getElementById(`list-item-${layerId}`);
         if (!item) return;
-        
+
         const thumbCanvas = item.querySelector('.layer-thumb');
         const layerObj = layers.find(l => l.id === layerId);
         if (!thumbCanvas || !layerObj) return;
@@ -672,7 +704,10 @@ document.addEventListener('DOMContentLoaded', () => {
         layersList.innerHTML = '';
         layers.forEach((layer) => {
             const item = document.createElement('div');
-            item.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
+            item.className = `layer-item`;
+            if (layer.id === activeLayerId) item.classList.add('active');
+            if (selectedLayerIds.has(layer.id)) item.classList.add('selected');
+
             if (!layer.visible) {
                 item.classList.add('hidden-layer');
             }
@@ -749,9 +784,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newLayer = createLayer(layer.name + ' copy');
                 const createdLayerObj = layers.shift();
                 layers.splice(idx, 0, createdLayerObj);
-                
+
                 createdLayerObj.ctx.drawImage(layer.canvas, 0, 0);
-                
+
                 updateZIndices();
                 renderLayersList();
                 setActiveLayer(createdLayerObj.id);
@@ -760,14 +795,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
             delBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if(deleteLayer(layer.id)){
+                if (deleteLayer(layer.id)) {
                     saveState();
                 }
             });
 
             item.addEventListener('click', (e) => {
                 if (delBtn.contains(e.target) || visBtn.contains(e.target) || dupBtn.contains(e.target)) return;
-                setActiveLayer(layer.id);
+
+                if (e.shiftKey && lastClickedLayerId) {
+                    const idx1 = layers.findIndex(l => l.id === lastClickedLayerId);
+                    const idx2 = layers.findIndex(l => l.id === layer.id);
+                    if (idx1 !== -1 && idx2 !== -1) {
+                        const start = Math.min(idx1, idx2);
+                        const end = Math.max(idx1, idx2);
+                        selectedLayerIds.clear();
+                        for (let i = start; i <= end; i++) {
+                            selectedLayerIds.add(layers[i].id);
+                        }
+                    }
+                } else if (e.ctrlKey) {
+                    if (selectedLayerIds.has(layer.id)) {
+                        selectedLayerIds.delete(layer.id);
+                    } else {
+                        selectedLayerIds.add(layer.id);
+                    }
+                } else {
+                    selectedLayerIds.clear();
+                    selectedLayerIds.add(layer.id);
+                }
+
+                lastClickedLayerId = layer.id;
+
+                if (!selectedLayerIds.has(activeLayerId) && selectedLayerIds.size > 0) {
+                    setActiveLayer(Array.from(selectedLayerIds)[0]);
+                } else {
+                    setActiveLayer(activeLayerId || layer.id);
+                }
+            });
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (!selectedLayerIds.has(layer.id)) {
+                    selectedLayerIds.clear();
+                    selectedLayerIds.add(layer.id);
+                    lastClickedLayerId = layer.id;
+                    setActiveLayer(layer.id);
+                }
+
+                ctxMergeSelected.disabled = selectedLayerIds.size < 2;
+                layerContextMenu.style.left = `${e.clientX}px`;
+                layerContextMenu.style.top = `${e.clientY}px`;
+                layerContextMenu.classList.remove('hidden');
             });
 
             title.addEventListener('dblclick', (e) => {
@@ -790,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     layer.name = newName;
                     saveState();
                 }
-                title.textContent = layer.name; 
+                title.textContent = layer.name;
             }
 
             title.addEventListener('blur', saveTitle);
@@ -824,13 +903,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 item.style.borderTop = '1px solid transparent';
                 if (!draggedLayerId || draggedLayerId === layer.id) return;
-                
+
                 const fromIdx = layers.findIndex(l => l.id === draggedLayerId);
                 const toIdx = layers.findIndex(l => l.id === layer.id);
-                
+
                 const [moved] = layers.splice(fromIdx, 1);
                 layers.splice(toIdx, 0, moved);
-                
+
                 updateZIndices();
                 renderLayersList();
                 saveState();
@@ -867,7 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const lastChild = layersList.lastElementChild;
             if (lastChild) lastChild.style.borderBottom = '1px solid transparent';
-            
+
             const fromIdx = layers.findIndex(l => l.id === draggedLayerId);
             if (fromIdx !== -1 && fromIdx !== layers.length - 1) {
                 const [moved] = layers.splice(fromIdx, 1);
@@ -918,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     canvasWrapper.addEventListener('pointerdown', (e) => {
         if (!documentCreated) return;
-        
+
         if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select')) {
             isPanning = true;
             panStartX = e.clientX;
@@ -937,18 +1016,18 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentTool === 'move') {
             const activeObj = getActiveLayerObj();
             if (!activeObj || !activeObj.visible) return;
-            
+
             isMoving = true;
             const coords = getCanvasCoords(e);
             moveStartX = coords.x;
             moveStartY = coords.y;
-            
+
             let hasSel = false;
             for (let i = 0; i < selectionMask.length; i++) {
                 if (selectionMask[i] > 0) { hasSel = true; break; }
             }
             moveHasSelection = hasSel;
-            
+
             if (!hasSel) {
                 moveOriginalLayerCanvas = document.createElement('canvas');
                 moveOriginalLayerCanvas.width = documentWidth;
@@ -959,40 +1038,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 moveFloatingCanvas.width = documentWidth;
                 moveFloatingCanvas.height = documentHeight;
                 const flCtx = moveFloatingCanvas.getContext('2d');
-                
-                const srcData = activeObj.ctx.getImageData(0,0,documentWidth,documentHeight);
-                const destData = flCtx.createImageData(documentWidth,documentHeight);
-                
+
+                const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+                const destData = flCtx.createImageData(documentWidth, documentHeight);
+
                 moveErasedLayerCanvas = document.createElement('canvas');
                 moveErasedLayerCanvas.width = documentWidth;
                 moveErasedLayerCanvas.height = documentHeight;
                 const erCtx = moveErasedLayerCanvas.getContext('2d', { willReadFrequently: true });
-                const erData = erCtx.createImageData(documentWidth,documentHeight);
-                
+                const erData = erCtx.createImageData(documentWidth, documentHeight);
+
                 for (let i = 0; i < selectionMask.length; i++) {
                     const px = i * 4;
                     const selVal = selectionMask[i];
                     if (selVal > 0) {
                         destData.data[px] = srcData.data[px];
-                        destData.data[px+1] = srcData.data[px+1];
-                        destData.data[px+2] = srcData.data[px+2];
+                        destData.data[px + 1] = srcData.data[px + 1];
+                        destData.data[px + 2] = srcData.data[px + 2];
                         const factor = selVal / 255;
-                        destData.data[px+3] = Math.floor(srcData.data[px+3] * factor);
-                        
+                        destData.data[px + 3] = Math.floor(srcData.data[px + 3] * factor);
+
                         erData.data[px] = srcData.data[px];
-                        erData.data[px+1] = srcData.data[px+1];
-                        erData.data[px+2] = srcData.data[px+2];
-                        erData.data[px+3] = Math.max(0, srcData.data[px+3] - destData.data[px+3]);
+                        erData.data[px + 1] = srcData.data[px + 1];
+                        erData.data[px + 2] = srcData.data[px + 2];
+                        erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - destData.data[px + 3]);
                     } else {
                         erData.data[px] = srcData.data[px];
-                        erData.data[px+1] = srcData.data[px+1];
-                        erData.data[px+2] = srcData.data[px+2];
-                        erData.data[px+3] = srcData.data[px+3];
+                        erData.data[px + 1] = srcData.data[px + 1];
+                        erData.data[px + 2] = srcData.data[px + 2];
+                        erData.data[px + 3] = srcData.data[px + 3];
                     }
                 }
                 flCtx.putImageData(destData, 0, 0);
                 erCtx.putImageData(erData, 0, 0);
-                
+
                 moveOriginalSelectionMask = new Uint8Array(selectionMask);
             }
             canvasWrapper.setPointerCapture(e.pointerId);
@@ -1011,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
             canvasWrapper.setPointerCapture(e.pointerId);
         } else if (currentTool === 'pencil') {
             const activeObj = getActiveLayerObj();
-            if(!activeObj || !activeObj.visible) return;
+            if (!activeObj || !activeObj.visible) return;
 
             isDrawing = true;
             const coords = getCanvasCoords(e);
@@ -1048,18 +1127,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Snap offset mechanically dynamically
             const dx = Math.floor(coords.x - moveStartX);
             const dy = Math.floor(coords.y - moveStartY);
-            
+
             const activeObj = getActiveLayerObj();
             if (!activeObj) return;
 
-            activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+            activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
 
             if (!moveHasSelection) {
                 activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
             } else {
                 activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
                 activeObj.ctx.drawImage(moveFloatingCanvas, dx, dy);
-                
+
                 // Hardware projected overlay tracking visually
                 selectionOverlay.style.transform = `translate(${dx}px, ${dy}px)`;
             }
@@ -1069,26 +1148,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const y0 = Math.min(selectStartY, coords.y);
             const x1 = Math.max(selectStartX, coords.x);
             const y1 = Math.max(selectStartY, coords.y);
-            
+
             selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
-            selectionDragCtx.fillStyle = selectionMode === 'subtract' 
-                ? 'rgba(255, 50, 50, 0.4)' 
+            selectionDragCtx.fillStyle = selectionMode === 'subtract'
+                ? 'rgba(255, 50, 50, 0.4)'
                 : 'rgba(92, 107, 255, 0.4)';
             selectionDragCtx.fillRect(x0, y0, x1 - x0, y1 - y0);
-            
+
             selectionDragCtx.setLineDash([5, 5]);
             selectionDragCtx.lineDashOffset = 0;
             selectionDragCtx.lineWidth = 1;
-            
+
             selectionDragCtx.strokeStyle = '#ffffff';
             selectionDragCtx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
-            
+
             selectionDragCtx.lineDashOffset = 5;
             selectionDragCtx.strokeStyle = '#222222';
             selectionDragCtx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
             selectionDragCtx.setLineDash([]);
             selectionDragCtx.lineDashOffset = 0;
-            
+
         } else if (currentTool === 'pencil' && isDrawing) {
             const coords = getCanvasCoords(e);
             drawPixelBresenham(lastX, lastY, coords.x, coords.y);
@@ -1099,8 +1178,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     canvasWrapper.addEventListener('pointerup', (e) => {
         if (!documentCreated) return;
-        
-        try { canvasWrapper.releasePointerCapture(e.pointerId); } catch(err) {}
+
+        try { canvasWrapper.releasePointerCapture(e.pointerId); } catch (err) { }
 
         if (isPanning) {
             isPanning = false;
@@ -1116,24 +1195,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 zoomAtPoint(e.clientX, e.clientY, newZoom);
             }
             isZoomDragging = false;
-            
+
         } else if (currentTool === 'move' && isMoving) {
             isMoving = false;
             const coords = getCanvasCoords(e);
             const dx = Math.floor(coords.x - moveStartX);
             const dy = Math.floor(coords.y - moveStartY);
-            
+
             const activeObj = getActiveLayerObj();
             if (activeObj) {
                 if (!moveHasSelection) {
-                    activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+                    activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                     activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
                 } else {
-                    activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+                    activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                     activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
                     activeObj.ctx.drawImage(moveFloatingCanvas, dx, dy);
-                    
-                    selectionOverlay.style.transform = `none`; 
+
+                    selectionOverlay.style.transform = `none`;
                     selectionMask.fill(0);
                     for (let y = 0; y < documentHeight; y++) {
                         for (let x = 0; x < documentWidth; x++) {
@@ -1151,32 +1230,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateLayerThumbnail(activeObj.id);
                 saveState();
             }
-            
+
             moveOriginalLayerCanvas = null;
             moveFloatingCanvas = null;
             moveErasedLayerCanvas = null;
             moveOriginalSelectionMask = null;
-            
+
         } else if (currentTool === 'rect-select' && isSelecting) {
             isSelecting = false;
             selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
 
             const coords = getCanvasCoords(e);
-            
+
             const xMinRaw = Math.min(selectStartX, coords.x);
             const yMinRaw = Math.min(selectStartY, coords.y);
             const xMaxRaw = Math.max(selectStartX, coords.x);
             const yMaxRaw = Math.max(selectStartY, coords.y);
-            
+
             const x0 = Math.max(0, Math.min(documentWidth, xMinRaw));
             const y0 = Math.max(0, Math.min(documentHeight, yMinRaw));
             const x1 = Math.max(0, Math.min(documentWidth, xMaxRaw));
             const y1 = Math.max(0, Math.min(documentHeight, yMaxRaw));
-            
+
             if (selectionMode === 'replace') {
                 selectionMask.fill(0);
             }
-            
+
             if (x1 > x0 && y1 > y0) {
                 for (let y = y0; y < y1; y++) {
                     const rowOffset = y * documentWidth;
@@ -1187,10 +1266,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            
+
             renderSelectionVisual();
             saveState();
-            
+
         } else if (currentTool === 'pencil' && isDrawing) {
             isDrawing = false;
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
@@ -1202,33 +1281,33 @@ document.addEventListener('DOMContentLoaded', () => {
         isPanning = false;
         canvasStack.classList.remove('is-panning');
         isZoomDragging = false;
-        
+
         if (isMoving) {
             isMoving = false;
             const activeObj = getActiveLayerObj();
             if (activeObj) {
                 if (moveOriginalLayerCanvas) {
-                    activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+                    activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                     activeObj.ctx.drawImage(moveOriginalLayerCanvas, 0, 0);
                 } else if (moveHasSelection) {
-                    activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+                    activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                     activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
                     activeObj.ctx.drawImage(moveFloatingCanvas, 0, 0);
                     selectionOverlay.style.transform = `none`;
                 }
             }
         }
-        
+
         if (isSelecting) {
             isSelecting = false;
             selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
             renderSelectionVisual();
         }
-        
-        if(isDrawing) {
+
+        if (isDrawing) {
             isDrawing = false;
             if (activeLayerId) updateLayerThumbnail(activeLayerId);
-            saveState(); 
+            saveState();
         }
     });
 
@@ -1246,13 +1325,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const oldW = documentWidth;
         const oldH = documentHeight;
-        
+
         let dx = 0; let dy = 0;
         if (!scaleImages) {
             if (anchorStr.includes('left')) dx = 0;
             else if (anchorStr.includes('right')) dx = newW - oldW;
             else dx = Math.floor((newW - oldW) / 2);
-            
+
             if (anchorStr.includes('top')) dy = 0;
             else if (anchorStr.includes('bottom')) dy = newH - oldH;
             else dy = Math.floor((newH - oldH) / 2);
@@ -1269,7 +1348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 tCtx.drawImage(layer.canvas, dx, dy);
             }
-            
+
             layer.canvas.width = newW;
             layer.canvas.height = newH;
             layer.ctx.drawImage(tempCanvas, 0, 0);
@@ -1277,27 +1356,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectionMask && selectionMask.length > 0) {
             const newMask = new Uint8Array(newW * newH);
-            
+
             if (scaleImages) {
                 const sTemp = document.createElement('canvas');
                 sTemp.width = oldW;
                 sTemp.height = oldH;
-                const sCtx = sTemp.getContext('2d', {willReadFrequently: true});
+                const sCtx = sTemp.getContext('2d', { willReadFrequently: true });
                 const sImgData = sCtx.createImageData(oldW, oldH);
                 for (let i = 0; i < oldW * oldH; i++) {
-                    sImgData.data[i*4 + 3] = selectionMask[i]; 
+                    sImgData.data[i * 4 + 3] = selectionMask[i];
                 }
                 sCtx.putImageData(sImgData, 0, 0);
-                
+
                 const destCanvas = document.createElement('canvas');
                 destCanvas.width = newW;
                 destCanvas.height = newH;
-                const destCtx = destCanvas.getContext('2d', {willReadFrequently: true});
+                const destCtx = destCanvas.getContext('2d', { willReadFrequently: true });
                 destCtx.drawImage(sTemp, 0, 0, oldW, oldH, 0, 0, newW, newH);
-                
+
                 const destData = destCtx.getImageData(0, 0, newW, newH);
                 for (let i = 0; i < newW * newH; i++) {
-                    newMask[i] = destData.data[i*4 + 3];
+                    newMask[i] = destData.data[i * 4 + 3];
                 }
             } else {
                 for (let y = 0; y < newH; y++) {
@@ -1315,15 +1394,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         documentWidth = newW;
         documentHeight = newH;
-        
+
         canvasStack.style.width = `${newW}px`;
         canvasStack.style.height = `${newH}px`;
-        
+
         selectionOverlay.width = newW;
         selectionOverlay.height = newH;
         selectionDragOverlay.width = newW;
         selectionDragOverlay.height = newH;
-        
+
         panX = 0; panY = 0; zoomLevel = 1.0;
         applyViewport();
         renderSelectionVisual();
@@ -1342,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startTransform() {
-        if(isTransforming) return;
+        if (isTransforming) return;
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
 
@@ -1378,39 +1457,39 @@ document.addEventListener('DOMContentLoaded', () => {
         transformContentCanvas.width = transformW;
         transformContentCanvas.height = transformH;
         const flCtx = transformContentCanvas.getContext('2d', { willReadFrequently: true });
-        
-        const srcData = activeObj.ctx.getImageData(0,0,documentWidth,documentHeight);
+
+        const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
         const destData = flCtx.createImageData(transformW, transformH);
-        
+
         transformErasedLayerCanvas = document.createElement('canvas');
         transformErasedLayerCanvas.width = documentWidth;
         transformErasedLayerCanvas.height = documentHeight;
         const erCtx = transformErasedLayerCanvas.getContext('2d', { willReadFrequently: true });
-        const erData = erCtx.createImageData(documentWidth,documentHeight);
+        const erData = erCtx.createImageData(documentWidth, documentHeight);
 
         for (let y = 0; y < documentHeight; y++) {
             for (let x = 0; x < documentWidth; x++) {
                 const i = y * documentWidth + x;
                 const px = i * 4;
                 const selVal = hasSel ? selectionMask[i] : 255;
-                
+
                 if (selVal > 0 && x >= minX && x <= maxX && y >= minY && y <= maxY) {
                     const destIdx = ((y - minY) * transformW + (x - minX)) * 4;
                     destData.data[destIdx] = srcData.data[px];
-                    destData.data[destIdx+1] = srcData.data[px+1];
-                    destData.data[destIdx+2] = srcData.data[px+2];
+                    destData.data[destIdx + 1] = srcData.data[px + 1];
+                    destData.data[destIdx + 2] = srcData.data[px + 2];
                     const factor = selVal / 255;
-                    destData.data[destIdx+3] = Math.floor(srcData.data[px+3] * factor);
-                    
+                    destData.data[destIdx + 3] = Math.floor(srcData.data[px + 3] * factor);
+
                     erData.data[px] = srcData.data[px];
-                    erData.data[px+1] = srcData.data[px+1];
-                    erData.data[px+2] = srcData.data[px+2];
-                    erData.data[px+3] = Math.max(0, srcData.data[px+3] - destData.data[destIdx+3]);
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - destData.data[destIdx + 3]);
                 } else {
                     erData.data[px] = srcData.data[px];
-                    erData.data[px+1] = srcData.data[px+1];
-                    erData.data[px+2] = srcData.data[px+2];
-                    erData.data[px+3] = srcData.data[px+3];
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = srcData.data[px + 3];
                 }
             }
         }
@@ -1422,10 +1501,10 @@ document.addEventListener('DOMContentLoaded', () => {
         transformOriginalLayerCanvas.width = documentWidth;
         transformOriginalLayerCanvas.height = documentHeight;
         transformOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
-        
+
         selectionOverlay.style.display = 'none';
 
-        activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
         activeObj.ctx.drawImage(transformErasedLayerCanvas, 0, 0);
 
         isTransforming = true;
@@ -1434,33 +1513,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function cancelTransform() {
-        if(!isTransforming) return;
+        if (!isTransforming) return;
         isTransforming = false;
         transformBox.classList.add('hidden');
         selectionOverlay.style.display = '';
 
         const activeObj = getActiveLayerObj();
-        activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
         activeObj.ctx.drawImage(transformOriginalLayerCanvas, 0, 0);
     }
 
     function applyTransform() {
-        if(!isTransforming) return;
+        if (!isTransforming) return;
         isTransforming = false;
         transformBox.classList.add('hidden');
         selectionOverlay.style.display = '';
 
         const activeObj = getActiveLayerObj();
-        activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
         activeObj.ctx.drawImage(transformErasedLayerCanvas, 0, 0);
-        
+
         const cx = transformBaseX + transformW / 2;
         const cy = transformBaseY + transformH / 2;
 
         activeObj.ctx.save();
         activeObj.ctx.translate(cx, cy);
         activeObj.ctx.rotate(transformAngle);
-        activeObj.ctx.drawImage(transformContentCanvas, -transformW/2, -transformH/2, transformW, transformH);
+        activeObj.ctx.drawImage(transformContentCanvas, -transformW / 2, -transformH / 2, transformW, transformH);
         activeObj.ctx.restore();
 
         if (transformHasSelection) {
@@ -1473,30 +1552,30 @@ document.addEventListener('DOMContentLoaded', () => {
             // But startTransform variables were lost from scope.
             // Oh right, `transformSelectionMaskClone` tracks the full `documentWidth x documentHeight` original!
             // So we don't need `minX/minY`. Just project the entire mask natively!
-            
+
             const fullSelCanvas = document.createElement('canvas');
             fullSelCanvas.width = documentWidth;
             fullSelCanvas.height = documentHeight;
-            const fullSelCtx = fullSelCanvas.getContext('2d', {willReadFrequently:true});
+            const fullSelCtx = fullSelCanvas.getContext('2d', { willReadFrequently: true });
             const selData = fullSelCtx.createImageData(documentWidth, documentHeight);
-            
-            for(let i=0; i<selectionMask.length; i++) {
-                selData.data[i*4+3] = transformSelectionMaskClone[i];
+
+            for (let i = 0; i < selectionMask.length; i++) {
+                selData.data[i * 4 + 3] = transformSelectionMaskClone[i];
             }
             fullSelCtx.putImageData(selData, 0, 0);
-            
+
             // To properly rotate/scale the selected region precisely mapping to the visual, 
             // the full mask actually CANNOT be drawn using cx, cy, w, h since the mask contains full document size.
             // Actually, we must ONLY project the *cutout piece* exactly like the pixel layer!
-            
+
             const chunkSelCanvas = document.createElement('canvas');
             const cw = transformContentCanvas.width;
             const ch = transformContentCanvas.height;
             chunkSelCanvas.width = cw;
             chunkSelCanvas.height = ch;
-            const chunkCtx = chunkSelCanvas.getContext('2d', {willReadFrequently:true});
+            const chunkCtx = chunkSelCanvas.getContext('2d', { willReadFrequently: true });
             const chunkData = chunkCtx.createImageData(cw, ch);
-            
+
             // Extract original bbox from transformSelectionMaskClone. 
             // In startTransform we recorded transformW / transformH, transformBaseX, transformBaseY initially!
             // Let's extract the chunk using those stored initials (wait, we didn't store initial baseX unless we add variables, but wait `cy` is new. 
@@ -1509,13 +1588,13 @@ document.addEventListener('DOMContentLoaded', () => {
             projCanvas.width = documentWidth;
             projCanvas.height = documentHeight;
             const projCtx = projCanvas.getContext('2d');
-            
+
             // I'll redraw the whole mask as a generic alpha image, but wait, the unselected parts shouldn't rotate!
             // Let's just drop the mask for now because it's insanely cleaner, unless we strictly implement piecewise mask rotation.
             // Actually, dropping selection mask after transforming a selection is incredibly common (e.g. Figma). 
             selectionMask.fill(0);
         }
-        
+
         renderSelectionVisual();
         updateLayerThumbnail(activeObj.id);
         saveState();
@@ -1539,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         transformPointerStartX = e.clientX;
         transformPointerStartY = e.clientY;
-        
+
         transformOrigX = transformBaseX;
         transformOrigY = transformBaseY;
         transformOrigW = transformW;
@@ -1548,11 +1627,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function interactTransformMove(e) {
-        if(!isTransforming || !transformOp) return;
-        
+        if (!isTransforming || !transformOp) return;
+
         const dxRaw = (e.clientX - transformPointerStartX) / zoomLevel;
         const dyRaw = (e.clientY - transformPointerStartY) / zoomLevel;
-        
+
         const cos = Math.cos(-transformOrigAngle);
         const sin = Math.sin(-transformOrigAngle);
         const dx = dxRaw * cos - dyRaw * sin;
@@ -1579,9 +1658,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let newH = transformOrigH;
             let newX = transformOrigX;
             let newY = transformOrigY;
-            
+
             const aspect = transformOrigW / transformOrigH;
-            
+
             if (transformOp.includes('r')) newW = transformOrigW + dx;
             if (transformOp.includes('l')) { newW = transformOrigW - dx; newX = transformOrigX + dx; }
             if (transformOp.includes('b')) newH = transformOrigH + dy;
@@ -1601,38 +1680,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if(newW < 2) { 
-               if(transformOp.includes('l')) newX -= (2 - newW);
-               newW = 2; 
+            if (newW < 2) {
+                if (transformOp.includes('l')) newX -= (2 - newW);
+                newW = 2;
             }
-            if(newH < 2) { 
-               if(transformOp.includes('t')) newY -= (2 - newH);
-               newH = 2; 
+            if (newH < 2) {
+                if (transformOp.includes('t')) newY -= (2 - newH);
+                newH = 2;
             }
-            
+
             transformW = newW;
             transformH = newH;
-            
-            const cxUnrotated = newX + newW/2;
-            const cyUnrotated = newY + newH/2;
-            const origCx = transformOrigX + transformOrigW/2;
-            const origCy = transformOrigY + transformOrigH/2;
-            
+
+            const cxUnrotated = newX + newW / 2;
+            const cyUnrotated = newY + newH / 2;
+            const origCx = transformOrigX + transformOrigW / 2;
+            const origCy = transformOrigY + transformOrigH / 2;
+
             const dcx = cxUnrotated - origCx;
             const dcy = cyUnrotated - origCy;
-            
+
             const rcx = dcx * Math.cos(transformOrigAngle) - dcy * Math.sin(transformOrigAngle);
             const rcy = dcx * Math.sin(transformOrigAngle) + dcy * Math.cos(transformOrigAngle);
-            
+
             const newFinalCx = origCx + rcx;
             const newFinalCy = origCy + rcy;
-            
-            transformBaseX = newFinalCx - newW/2;
-            transformBaseY = newFinalCy - newH/2;
+
+            transformBaseX = newFinalCx - newW / 2;
+            transformBaseY = newFinalCy - newH / 2;
         }
         updateTransformUI();
     }
-    
+
     function interactTransformEnd() {
         transformOp = null;
     }
@@ -1641,14 +1720,239 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('pointermove', interactTransformMove);
     document.addEventListener('pointerup', interactTransformEnd);
 
+    function nudgeMove(dx, dy) {
+        if (!documentCreated) return;
+        const activeObj = getActiveLayerObj();
+        if (!activeObj || !activeObj.visible) return;
+
+        let minX = documentWidth, minY = documentHeight, maxX = 0, maxY = 0;
+        let hasSel = false;
+
+        for (let y = 0; y < documentHeight; y++) {
+            for (let x = 0; x < documentWidth; x++) {
+                if (selectionMask[y * documentWidth + x] > 0) {
+                    hasSel = true;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        if (!hasSel) {
+            const temp = document.createElement('canvas');
+            temp.width = documentWidth;
+            temp.height = documentHeight;
+            temp.getContext('2d').drawImage(activeObj.canvas, 0, 0);
+
+            activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
+            activeObj.ctx.drawImage(temp, dx, dy);
+            updateLayerThumbnail(activeObj.id);
+            saveState();
+            return;
+        }
+
+        const w = maxX - minX + 1;
+        const h = maxY - minY + 1;
+        if (w <= 0 || h <= 0) return;
+
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = w;
+        cropCanvas.height = h;
+        const cropCtx = cropCanvas.getContext('2d', { willReadFrequently: true });
+        const cropData = cropCtx.createImageData(w, h);
+
+        const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+
+        const erasedCanvas = document.createElement('canvas');
+        erasedCanvas.width = documentWidth;
+        erasedCanvas.height = documentHeight;
+        const erCtx = erasedCanvas.getContext('2d', { willReadFrequently: true });
+        const erData = erCtx.createImageData(documentWidth, documentHeight);
+
+        for (let y = 0; y < documentHeight; y++) {
+            for (let x = 0; x < documentWidth; x++) {
+                const i = y * documentWidth + x;
+                const px = i * 4;
+                const selVal = selectionMask[i];
+
+                if (selVal > 0 && x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                    const destIdx = ((y - minY) * w + (x - minX)) * 4;
+                    cropData.data[destIdx] = srcData.data[px];
+                    cropData.data[destIdx + 1] = srcData.data[px + 1];
+                    cropData.data[destIdx + 2] = srcData.data[px + 2];
+                    const factor = selVal / 255;
+                    cropData.data[destIdx + 3] = Math.floor(srcData.data[px + 3] * factor);
+
+                    erData.data[px] = srcData.data[px];
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - cropData.data[destIdx + 3]);
+                } else {
+                    erData.data[px] = srcData.data[px];
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = srcData.data[px + 3];
+                }
+            }
+        }
+        cropCtx.putImageData(cropData, 0, 0);
+        erCtx.putImageData(erData, 0, 0);
+
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
+        activeObj.ctx.drawImage(erasedCanvas, 0, 0);
+        activeObj.ctx.drawImage(cropCanvas, minX + dx, minY + dy);
+
+        const oldMask = new Uint8Array(selectionMask);
+        selectionMask.fill(0);
+        for (let y = 0; y < documentHeight; y++) {
+            for (let x = 0; x < documentWidth; x++) {
+                const sx = x - dx;
+                const sy = y - dy;
+                if (sx >= 0 && sx < documentWidth && sy >= 0 && sy < documentHeight) {
+                    selectionMask[y * documentWidth + x] = oldMask[sy * documentWidth + sx];
+                }
+            }
+        }
+
+        renderSelectionVisual();
+        updateLayerThumbnail(activeObj.id);
+        saveState();
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!layerContextMenu.contains(e.target)) {
+            layerContextMenu.classList.add('hidden');
+        }
+    });
+
+    ctxDuplicateLayer.addEventListener('click', () => {
+        layerContextMenu.classList.add('hidden');
+        const activeObj = getActiveLayerObj();
+        if (!activeObj) return;
+
+        const idx = layers.findIndex(l => l.id === activeObj.id);
+        const newLayer = createLayer(activeObj.name + ' copy');
+        const createdLayerObj = layers.shift();
+        layers.splice(idx, 0, createdLayerObj);
+
+        createdLayerObj.ctx.drawImage(activeObj.canvas, 0, 0);
+        updateZIndices();
+        renderLayersList();
+        setActiveLayer(createdLayerObj.id);
+        saveState();
+    });
+
+    ctxDeleteLayer.addEventListener('click', () => {
+        layerContextMenu.classList.add('hidden');
+        let deleted = false;
+        const idsToDelete = Array.from(selectedLayerIds);
+
+        for (let delId of idsToDelete) {
+            if (layers.length <= 1) break;
+            const layerObj = layers.find(l => l.id === delId);
+            if (layerObj) {
+                layerObj.canvas.remove();
+                layers = layers.filter(l => l.id !== delId);
+                deleted = true;
+            }
+        }
+
+        if (deleted) {
+            selectedLayerIds.clear();
+            const topId = layers[0].id;
+            selectedLayerIds.add(topId);
+            lastClickedLayerId = topId;
+            setActiveLayer(topId);
+            renderLayersList();
+            saveState();
+        }
+    });
+
+    ctxMergeSelected.addEventListener('click', () => {
+        layerContextMenu.classList.add('hidden');
+        if (selectedLayerIds.size < 2) return;
+
+        const sortedSelectedLayers = [];
+        let topmostIndex = layers.length;
+
+        for (let i = layers.length - 1; i >= 0; i--) {
+            if (selectedLayerIds.has(layers[i].id)) {
+                sortedSelectedLayers.push(layers[i]);
+                if (i < topmostIndex) topmostIndex = i;
+            }
+        }
+
+        const topmostName = layers[topmostIndex].name;
+
+        const mergedCanvas = document.createElement('canvas');
+        mergedCanvas.width = documentWidth;
+        mergedCanvas.height = documentHeight;
+        const mCtx = mergedCanvas.getContext('2d', { willReadFrequently: true });
+
+        for (const lObj of sortedSelectedLayers) {
+            if (lObj.visible) {
+                mCtx.drawImage(lObj.canvas, 0, 0);
+            }
+        }
+
+        for (const lObj of sortedSelectedLayers) {
+            lObj.canvas.remove();
+        }
+
+        layers = layers.filter(l => !selectedLayerIds.has(l.id));
+
+        layerCounter++;
+        const newId = `layer-${layerCounter}`;
+        const c = document.createElement('canvas');
+        c.id = newId;
+        c.width = documentWidth;
+        c.height = documentHeight;
+        const cx = c.getContext('2d', { willReadFrequently: true });
+        cx.drawImage(mergedCanvas, 0, 0);
+
+        canvasStack.appendChild(c);
+        canvasStack.appendChild(selectionOverlay);
+        canvasStack.appendChild(selectionDragOverlay);
+        canvasStack.appendChild(transformBox);
+
+        const newLayerObj = { id: newId, name: topmostName, canvas: c, ctx: cx, visible: true };
+
+        layers.splice(topmostIndex, 0, newLayerObj);
+
+        selectedLayerIds.clear();
+        selectedLayerIds.add(newId);
+        lastClickedLayerId = newId;
+
+        updateZIndices();
+        renderLayersList();
+        setActiveLayer(newId);
+        saveState();
+    });
+
     document.addEventListener('keydown', (e) => {
-        if(isTransforming) {
-            if(e.key === 'Escape') cancelTransform();
-            else if(e.key === 'Enter') applyTransform();
+        if (isTransforming) {
+            if (e.key === 'Escape') cancelTransform();
+            else if (e.key === 'Enter') applyTransform();
+            else if (e.key === 'ArrowUp') { e.preventDefault(); transformBaseY -= e.shiftKey ? 10 : 1; updateTransformUI(); }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); transformBaseY += e.shiftKey ? 10 : 1; updateTransformUI(); }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); transformBaseX -= e.shiftKey ? 10 : 1; updateTransformUI(); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); transformBaseX += e.shiftKey ? 10 : 1; updateTransformUI(); }
         } else {
             if (e.key.toLowerCase() === 't' && e.ctrlKey && e.altKey) {
                 e.preventDefault();
                 startTransform();
+            } else if (currentTool === 'move' && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                let dx = 0, dy = 0;
+                let amt = e.shiftKey ? 10 : 1;
+                if (e.key === 'ArrowUp') dy = -amt;
+                else if (e.key === 'ArrowDown') dy = amt;
+                else if (e.key === 'ArrowLeft') dx = -amt;
+                else if (e.key === 'ArrowRight') dx = amt;
+
+                nudgeMove(dx, dy);
             }
         }
     });
@@ -1670,14 +1974,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(newCanvasForm);
         const width = parseInt(formData.get('width'), 10);
         const height = parseInt(formData.get('height'), 10);
-        
+
         if (width > 0 && height > 0) {
             currentFileName = 'untitled.png';
             initDocument(width, height);
             newCanvasModal.close();
         }
     });
-    
+
     // Edit Menu Action Handlers
     btnImageSize.addEventListener('click', () => {
         document.getElementById('image-size-width').value = documentWidth;
@@ -1722,7 +2026,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Flip Operations ---
     function executeFlip(flipH, flipV) {
-        if(isTransforming) return;
+        if (isTransforming) return;
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
 
@@ -1755,89 +2059,89 @@ document.addEventListener('DOMContentLoaded', () => {
         cropCanvas.height = h;
         const cropCtx = cropCanvas.getContext('2d', { willReadFrequently: true });
         const cropData = cropCtx.createImageData(w, h);
-        
-        const srcData = activeObj.ctx.getImageData(0,0,documentWidth,documentHeight);
-        
+
+        const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+
         const erasedCanvas = document.createElement('canvas');
         erasedCanvas.width = documentWidth;
         erasedCanvas.height = documentHeight;
         const erCtx = erasedCanvas.getContext('2d', { willReadFrequently: true });
         const erData = erCtx.createImageData(documentWidth, documentHeight);
-        
+
         for (let y = 0; y < documentHeight; y++) {
             for (let x = 0; x < documentWidth; x++) {
                 const i = y * documentWidth + x;
                 const px = i * 4;
                 const selVal = hasSel ? selectionMask[i] : 255;
-                
+
                 if (selVal > 0 && x >= minX && x <= maxX && y >= minY && y <= maxY) {
                     const destIdx = ((y - minY) * w + (x - minX)) * 4;
                     cropData.data[destIdx] = srcData.data[px];
-                    cropData.data[destIdx+1] = srcData.data[px+1];
-                    cropData.data[destIdx+2] = srcData.data[px+2];
+                    cropData.data[destIdx + 1] = srcData.data[px + 1];
+                    cropData.data[destIdx + 2] = srcData.data[px + 2];
                     const factor = selVal / 255;
-                    cropData.data[destIdx+3] = Math.floor(srcData.data[px+3] * factor);
-                    
+                    cropData.data[destIdx + 3] = Math.floor(srcData.data[px + 3] * factor);
+
                     erData.data[px] = srcData.data[px];
-                    erData.data[px+1] = srcData.data[px+1];
-                    erData.data[px+2] = srcData.data[px+2];
-                    erData.data[px+3] = Math.max(0, srcData.data[px+3] - cropData.data[destIdx+3]);
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - cropData.data[destIdx + 3]);
                 } else {
                     erData.data[px] = srcData.data[px];
-                    erData.data[px+1] = srcData.data[px+1];
-                    erData.data[px+2] = srcData.data[px+2];
-                    erData.data[px+3] = srcData.data[px+3];
+                    erData.data[px + 1] = srcData.data[px + 1];
+                    erData.data[px + 2] = srcData.data[px + 2];
+                    erData.data[px + 3] = srcData.data[px + 3];
                 }
             }
         }
         cropCtx.putImageData(cropData, 0, 0);
         erCtx.putImageData(erData, 0, 0);
 
-        activeObj.ctx.clearRect(0,0,documentWidth,documentHeight);
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
         activeObj.ctx.drawImage(erasedCanvas, 0, 0);
-        
+
         const cx = minX + w / 2;
         const cy = minY + h / 2;
-        
+
         activeObj.ctx.save();
         activeObj.ctx.translate(cx, cy);
         activeObj.ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-        activeObj.ctx.drawImage(cropCanvas, -w/2, -h/2, w, h);
+        activeObj.ctx.drawImage(cropCanvas, -w / 2, -h / 2, w, h);
         activeObj.ctx.restore();
-        
+
         if (hasSel) {
             const maskCanvas = document.createElement('canvas');
             maskCanvas.width = w;
             maskCanvas.height = h;
-            const mCtx = maskCanvas.getContext('2d', {willReadFrequently:true});
-            const mData = mCtx.createImageData(w,h);
-            for(let y=minY; y<=maxY; y++) {
-                for(let x=minX; x<=maxX; x++) {
-                    const val = selectionMask[y*documentWidth+x];
-                    if(val>0) {
-                        const di = ((y-minY)*w + (x-minX))*4;
-                        mData.data[di+3] = val;
+            const mCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+            const mData = mCtx.createImageData(w, h);
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    const val = selectionMask[y * documentWidth + x];
+                    if (val > 0) {
+                        const di = ((y - minY) * w + (x - minX)) * 4;
+                        mData.data[di + 3] = val;
                     }
                 }
             }
-            mCtx.putImageData(mData,0,0);
-            
+            mCtx.putImageData(mData, 0, 0);
+
             const projCanvas = document.createElement('canvas');
             projCanvas.width = documentWidth;
             projCanvas.height = documentHeight;
-            const pCtx = projCanvas.getContext('2d', {willReadFrequently:true});
+            const pCtx = projCanvas.getContext('2d', { willReadFrequently: true });
             pCtx.translate(cx, cy);
             pCtx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-            pCtx.drawImage(maskCanvas, -w/2, -h/2, w, h);
-            
-            const pData = pCtx.getImageData(0,0,documentWidth,documentHeight);
+            pCtx.drawImage(maskCanvas, -w / 2, -h / 2, w, h);
+
+            const pData = pCtx.getImageData(0, 0, documentWidth, documentHeight);
             selectionMask.fill(0);
-            for(let i=0; i<selectionMask.length; i++) {
-                selectionMask[i] = pData.data[i*4+3];
+            for (let i = 0; i < selectionMask.length; i++) {
+                selectionMask[i] = pData.data[i * 4 + 3];
             }
             renderSelectionVisual();
         }
-        
+
         updateLayerThumbnail(activeObj.id);
         saveState();
         showToast("Flipped");
@@ -1864,22 +2168,22 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFileName = file.name;
         const objectUrl = URL.createObjectURL(file);
         const img = new Image();
-        
+
         img.onload = () => {
             initDocument(img.width, img.height, true);
             const layer = createLayer('Background');
             layer.ctx.drawImage(img, 0, 0);
             updateLayerThumbnail(layer.id);
-            
+
             saveState();
             URL.revokeObjectURL(objectUrl);
         };
-        
+
         img.onerror = () => {
             alert('Failed to load the selected image file.');
             URL.revokeObjectURL(objectUrl);
         };
-        
+
         img.src = objectUrl;
         fileInput.value = '';
     });
@@ -1891,9 +2195,9 @@ document.addEventListener('DOMContentLoaded', () => {
         outputCanvas.width = documentWidth;
         outputCanvas.height = documentHeight;
         const outputCtx = outputCanvas.getContext('2d');
-        
+
         for (let i = layers.length - 1; i >= 0; i--) {
-            if(layers[i].visible) {
+            if (layers[i].visible) {
                 outputCtx.drawImage(layers[i].canvas, 0, 0);
             }
         }
@@ -1905,7 +2209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     suggestedName: `edited_${currentFileName}`,
                     types: [{
                         description: 'PNG Image',
-                        accept: {'image/png': ['.png']},
+                        accept: { 'image/png': ['.png'] },
                     }],
                 });
                 const writable = await handle.createWritable();

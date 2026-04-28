@@ -461,6 +461,7 @@ body {
     cursor: pointer;
     transition: background-color 0.1s;
     border: 1px solid transparent;
+    user-select: none;
 }
 
 .layer-item:hover {
@@ -470,6 +471,54 @@ body {
 .layer-item.active {
     background-color: var(--bg-elevated);
     border-color: var(--border-light);
+}
+
+.layer-item.selected {
+    background-color: var(--bg-modifier-hover);
+}
+
+/* Layer Context Menu */
+#layer-context-menu {
+    position: absolute;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-sm);
+    padding: 6px 0;
+    min-width: 160px;
+    z-index: 999999;
+}
+
+#layer-context-menu.hidden {
+    display: none;
+}
+
+#layer-context-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+#layer-context-menu button:hover:not(:disabled) {
+    background-color: var(--accent);
+    color: white;
+}
+
+#layer-context-menu button:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+#layer-context-menu hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 4px 0;
 }
 
 .layer-thumb {
