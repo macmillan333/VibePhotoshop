@@ -23,6 +23,59 @@ document.addEventListener('pointerup', () => {
 });
 
 
+// --- Fill & Clear Operations ---
+function executeFill(colorHex, activeObj, hasSelection) {
+    let r = parseInt(colorHex.slice(1, 3), 16);
+    let g = parseInt(colorHex.slice(3, 5), 16);
+    let b = parseInt(colorHex.slice(5, 7), 16);
+
+    if (!hasSelection) {
+        activeObj.ctx.fillStyle = colorHex;
+        activeObj.ctx.fillRect(0, 0, documentWidth, documentHeight);
+    } else {
+        const fillCanvas = document.createElement('canvas');
+        fillCanvas.width = documentWidth;
+        fillCanvas.height = documentHeight;
+        const fillCtx = fillCanvas.getContext('2d');
+        const fillData = fillCtx.createImageData(documentWidth, documentHeight);
+
+        for (let i = 0; i < selectionMask.length; i++) {
+            const selAlpha = selectionMask[i];
+            if (selAlpha > 0) {
+                const px = i * 4;
+                fillData.data[px] = r;
+                fillData.data[px + 1] = g;
+                fillData.data[px + 2] = b;
+                fillData.data[px + 3] = selAlpha;
+            }
+        }
+        fillCtx.putImageData(fillData, 0, 0);
+        activeObj.ctx.drawImage(fillCanvas, 0, 0);
+    }
+    updateLayerThumbnail(activeObj.id);
+    saveState();
+}
+
+function executeClear(activeObj, hasSelection) {
+    if (!hasSelection) {
+        activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
+    } else {
+        const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+        for (let i = 0; i < selectionMask.length; i++) {
+            const selAlpha = selectionMask[i];
+            if (selAlpha > 0) {
+                const px = i * 4;
+                const factor = selAlpha / 255;
+                const reduction = Math.floor(srcData.data[px + 3] * factor);
+                srcData.data[px + 3] = Math.max(0, srcData.data[px + 3] - reduction);
+            }
+        }
+        activeObj.ctx.putImageData(srcData, 0, 0);
+    }
+    updateLayerThumbnail(activeObj.id);
+    saveState();
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
 
@@ -31,6 +84,29 @@ document.addEventListener('keydown', (e) => {
     }
     if (e.key === 'Shift') {
         canvasStack.classList.add('shift-down');
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeObj = getActiveLayerObj();
+        if (!activeObj || !activeObj.visible) return;
+
+        let hasSelection = false;
+        if (selectionMask) {
+            for (let i = 0; i < selectionMask.length; i++) {
+                if (selectionMask[i] > 0) { hasSelection = true; break; }
+            }
+        }
+
+        e.preventDefault();
+
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            executeFill(fgColor, activeObj, hasSelection);
+        } else if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+            executeFill(bgColor, activeObj, hasSelection);
+        } else if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+            executeClear(activeObj, hasSelection);
+        }
+        return;
     }
 
     if (e.ctrlKey || e.metaKey) {
@@ -98,6 +174,50 @@ document.addEventListener('keydown', (e) => {
                 clipCtx.putImageData(destData, 0, 0);
             }
             showToast("Copied to clipboard");
+        } else if (e.key === 'x' || e.key === 'X') {
+            e.preventDefault();
+            const activeObj = getActiveLayerObj();
+            if (!activeObj || !activeObj.visible) {
+                showToast("Cannot cut from hidden/missing layer");
+                return;
+            }
+
+            let hasSelection = false;
+            for (let i = 0; i < selectionMask.length; i++) {
+                if (selectionMask[i] > 0) { hasSelection = true; break; }
+            }
+
+            clipboardData = document.createElement('canvas');
+            clipboardData.width = documentWidth;
+            clipboardData.height = documentHeight;
+            const clipCtx = clipboardData.getContext('2d');
+
+            if (!hasSelection) {
+                clipCtx.drawImage(activeObj.canvas, 0, 0);
+                activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
+            } else {
+                const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+                const destData = clipCtx.createImageData(documentWidth, documentHeight);
+                for (let i = 0; i < selectionMask.length; i++) {
+                    const selAlpha = selectionMask[i];
+                    if (selAlpha > 0) {
+                        const px = i * 4;
+                        destData.data[px] = srcData.data[px];
+                        destData.data[px + 1] = srcData.data[px + 1];
+                        destData.data[px + 2] = srcData.data[px + 2];
+                        destData.data[px + 3] = Math.floor((srcData.data[px + 3] * selAlpha) / 255);
+
+                        const factor = selAlpha / 255;
+                        const reduction = Math.floor(srcData.data[px + 3] * factor);
+                        srcData.data[px + 3] = Math.max(0, srcData.data[px + 3] - reduction);
+                    }
+                }
+                clipCtx.putImageData(destData, 0, 0);
+                activeObj.ctx.putImageData(srcData, 0, 0);
+            }
+            updateLayerThumbnail(activeObj.id);
+            saveState();
+            showToast("Copied to clipboard");
         } else if (e.key === 'v' || e.key === 'V') {
             e.preventDefault();
             if (!clipboardData) {
@@ -109,7 +229,6 @@ document.addEventListener('keydown', (e) => {
             newLayer.ctx.drawImage(clipboardData, 0, 0);
             updateLayerThumbnail(newLayer.id);
             saveState();
-            showToast("Pasted as new layer");
         }
     }
 });
@@ -353,7 +472,6 @@ function executeFlip(flipH, flipV) {
 
     updateLayerThumbnail(activeObj.id);
     saveState();
-    showToast("Flipped");
 }
 
 btnFlipH.addEventListener('click', () => executeFlip(true, false));

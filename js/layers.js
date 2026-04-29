@@ -4,7 +4,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     documentHeight = h;
     documentCreated = true;
 
-    Array.from(canvasStack.querySelectorAll('.layer-canvas')).forEach(el => el.remove());
+    layers.forEach(l => l.canvas.remove());
     layersList.innerHTML = '';
     layers = [];
     layerCounter = 0;
@@ -42,6 +42,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     canvasStack.classList.add('active');
     canvasStack.style.width = `${w}px`;
     canvasStack.style.height = `${h}px`;
+    canvasStack.style.aspectRatio = `${w} / ${h}`;
     canvasStack.style.transformOrigin = '0 0';
     applyViewport();
 
@@ -204,37 +205,9 @@ function renderLayersList() {
         title.className = 'layer-name';
         title.textContent = layer.name;
 
-        const actionsGroup = document.createElement('div');
-        actionsGroup.className = 'item-actions';
-
-        const dupBtn = document.createElement('button');
-        dupBtn.className = 'btn-icon';
-        dupBtn.title = 'Duplicate Layer';
-        dupBtn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-        `;
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'btn-icon';
-        delBtn.title = 'Delete Layer';
-        delBtn.disabled = layers.length <= 1;
-        delBtn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-        `;
-
-        actionsGroup.appendChild(dupBtn);
-        actionsGroup.appendChild(delBtn);
-
         item.appendChild(visBtn);
         item.appendChild(tcvs);
         item.appendChild(title);
-        item.appendChild(actionsGroup);
 
         visBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -244,30 +217,8 @@ function renderLayersList() {
             renderLayersList();
         });
 
-        dupBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const idx = layers.findIndex(l => l.id === layer.id);
-            const newLayer = createLayer(layer.name + ' copy');
-            const createdLayerObj = layers.shift();
-            layers.splice(idx, 0, createdLayerObj);
-
-            createdLayerObj.ctx.drawImage(layer.canvas, 0, 0);
-
-            updateZIndices();
-            renderLayersList();
-            setActiveLayer(createdLayerObj.id);
-            saveState();
-        });
-
-        delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (deleteLayer(layer.id)) {
-                saveState();
-            }
-        });
-
         item.addEventListener('click', (e) => {
-            if (delBtn.contains(e.target) || visBtn.contains(e.target) || dupBtn.contains(e.target)) return;
+            if (visBtn.contains(e.target)) return;
 
             if (e.shiftKey && lastClickedLayerId) {
                 const idx1 = layers.findIndex(l => l.id === lastClickedLayerId);

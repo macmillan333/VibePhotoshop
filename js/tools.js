@@ -497,7 +497,6 @@ function resizeDocument(newW, newH, scaleImages, anchorStr = 'center') {
     renderSelectionVisual();
     layers.forEach(l => updateLayerThumbnail(l.id));
     saveState();
-    showToast("Document Resized");
 }
 
 // --- Free Transform Engine ---

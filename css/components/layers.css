@@ -79,7 +79,8 @@
 }
 
 .layer-item.selected {
-    background-color: var(--bg-modifier-hover);
+    background-color: var(--bg-elevated);
+    border-color: var(--border-color);
 }
 
 /* Layer Context Menu */
@@ -180,7 +181,4 @@
     border-radius: 2px;
 }
 
-.item-actions {
-    display: flex;
-    gap: 2px;
-}
+
