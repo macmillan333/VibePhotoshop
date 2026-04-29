@@ -1,0 +1,189 @@
+.modal {
+    margin: auto;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    padding: 24px;
+    width: 360px;
+}
+
+.modal::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.modal h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-family);
+    font-size: 14px;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.form-group input:focus {
+    border-color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.toast {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-md);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+/* --- Phase 12 Modals CSS --- */
+.anchor-section {
+    margin: 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.anchor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+    gap: 4px;
+    background-color: var(--bg-dark);
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.anchor-btn {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.anchor-btn:hover {
+    background-color: var(--border-color);
+}
+
+.anchor-btn.active {
+    background-color: var(--accent);
+    border-color: var(--text-primary);
+}
+
+/* --- Phase 13 Free Transform --- */
+#transform-box {
+    position: absolute;
+    border: 1px dashed var(--accent);
+    box-sizing: border-box;
+    z-index: 100001; 
+    cursor: move;
+    transform-origin: center center;
+}
+
+#transform-box.hidden {
+    display: none;
+}
+
+#transform-content {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+    image-rendering: pixelated;
+}
+
+.rotation-zone {
+    position: absolute;
+    top: -30px;
+    left: -30px;
+    right: -30px;
+    bottom: -30px;
+    z-index: -1;
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l-3 2.77" stroke="white" stroke-width="4"/><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l-3 2.77"/></svg>') 12 12, crosshair;
+}
+
+.move-zone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: move;
+}
+
+.handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    z-index: 2;
+}
+
+.handle.top-left { top: -6px; left: -6px; cursor: nw-resize; }
+.handle.top-center { top: -6px; left: calc(50% - 6px); cursor: n-resize; }
+.handle.top-right { top: -6px; right: -6px; cursor: ne-resize; }
+.handle.center-left { top: calc(50% - 6px); left: -6px; cursor: w-resize; }
+.handle.center-right { top: calc(50% - 6px); right: -6px; cursor: e-resize; }
+.handle.bottom-left { bottom: -6px; left: -6px; cursor: sw-resize; }
+.handle.bottom-center { bottom: -6px; left: calc(50% - 6px); cursor: s-resize; }
+.handle.bottom-right { bottom: -6px; right: -6px; cursor: se-resize; }

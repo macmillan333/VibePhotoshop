@@ -1,0 +1,30 @@
+:root {
+    /* Color Palette */
+    --bg-dark: #121217;
+    --bg-surface: #1C1C23;
+    --bg-elevated: #2A2A35;
+
+    --border-color: #353545;
+    --border-light: rgba(255, 255, 255, 0.1);
+
+    --accent: #5C6BFF;
+    --accent-hover: #717EFF;
+    --accent-active: #4856E6;
+
+    --text-primary: #EDEDF5;
+    --text-secondary: #9090A6;
+    --text-muted: #606075;
+
+    /* Effects and Dimensions */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-pill: 9999px;
+
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -1,0 +1,140 @@
+// --- DOM Elements ---
+const fileMenuBtn = document.getElementById('file-menu-btn');
+const fileDropdown = document.getElementById('file-dropdown');
+
+const btnNew = document.getElementById('btn-new');
+const btnOpen = document.getElementById('btn-open');
+const btnSave = document.getElementById('btn-save');
+const fileInput = document.getElementById('file-input');
+
+const editMenuBtn = document.getElementById('edit-menu-btn');
+const editDropdown = document.getElementById('edit-dropdown');
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
+const btnImageSize = document.getElementById('btn-image-size');
+const btnCanvasSize = document.getElementById('btn-canvas-size');
+const btnFlipH = document.getElementById('btn-flip-h');
+const btnFlipV = document.getElementById('btn-flip-v');
+const btnFreeTransform = document.getElementById('btn-free-transform');
+
+const layerContextMenu = document.getElementById('layer-context-menu');
+const ctxDuplicateLayer = document.getElementById('ctx-duplicate-layer');
+const ctxMergeSelected = document.getElementById('ctx-merge-selected');
+const ctxDeleteLayer = document.getElementById('ctx-delete-layer');
+
+const transformBox = document.getElementById('transform-box');
+const transformContentCanvas = document.getElementById('transform-content');
+
+const newCanvasModal = document.getElementById('new-canvas-modal');
+const newCanvasForm = document.getElementById('new-canvas-form');
+const btnCancelNew = document.getElementById('btn-cancel-new');
+
+const imageSizeModal = document.getElementById('image-size-modal');
+const imageSizeForm = document.getElementById('image-size-form');
+const btnCancelImageSize = document.getElementById('btn-cancel-image-size');
+
+const canvasSizeModal = document.getElementById('canvas-size-modal');
+const canvasSizeForm = document.getElementById('canvas-size-form');
+const btnCancelCanvasSize = document.getElementById('btn-cancel-canvas-size');
+const anchorBtns = document.querySelectorAll('.anchor-btn');
+
+const canvasWrapper = document.querySelector('.canvas-wrapper');
+const canvasStack = document.getElementById('canvas-stack');
+const sidebarRight = document.getElementById('sidebar-right');
+const layersList = document.getElementById('layers-list');
+const btnAddLayer = document.getElementById('btn-add-layer');
+const noImageState = document.getElementById('no-image-state');
+const toastContainer = document.getElementById('toast-container');
+const layersResizer = document.getElementById('layers-resizer');
+
+// --- State ---
+let currentFileName = 'untitled.png';
+let documentWidth = 800;
+let documentHeight = 600;
+let documentCreated = false;
+
+// Viewport State
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 32.0;
+let zoomLevel = 1.0;
+let panX = 0;
+let panY = 0;
+
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+
+let isZoomDragging = false;
+let zoomStartX = 0;
+let zoomStartY = 0;
+let zoomStartLevel = 1.0;
+
+// Selection State
+let selectionMask = null;
+let selectionOverlay = null;
+let selectionDragOverlay = null;
+let selectionCtx = null;
+let selectionDragCtx = null;
+
+let isSelecting = false;
+let selectStartX = 0;
+let selectStartY = 0;
+let selectionMode = 'replace';
+
+let clipboardData = null;
+
+// Transform Engine
+let isTransforming = false;
+let transformBaseX = 0, transformBaseY = 0;
+let transformW = 0, transformH = 0, transformAngle = 0;
+let transformOriginalLayerCanvas = null;
+let transformSelectionMaskClone = null;
+let transformErasedLayerCanvas = null;
+let transformOp = null; // 'move', 'rotate', 'tl', 'br', etc
+let transformPointerStartX = 0, transformPointerStartY = 0;
+let transformOrigX = 0, transformOrigY = 0;
+let transformOrigW = 0, transformOrigH = 0, transformOrigAngle = 0;
+let transformHasSelection = false;
+
+// Move Engine States
+let isMoving = false;
+let moveStartX = 0;
+let moveStartY = 0;
+let moveHasSelection = false;
+let moveOriginalLayerCanvas = null;
+let moveFloatingCanvas = null;
+let moveErasedLayerCanvas = null;
+let moveOriginalSelectionMask = null;
+
+// Layers Subsystem
+let layers = []; // Array of { id, name, canvas, ctx, visible }
+let activeLayerId = null;
+let layerCounter = 0;
+let selectedLayerIds = new Set();
+let lastClickedLayerId = null;
+
+// History Subsystem (Undo/Redo)
+let history = [];
+let historyIndex = -1;
+const MAX_HISTORY = 30;
+
+let fgColor = '#000000';
+let bgColor = '#ffffff';
+
+const toolMove = document.getElementById('tool-move');
+const toolPencil = document.getElementById('tool-pencil');
+const toolZoom = document.getElementById('tool-zoom');
+const toolRectSelect = document.getElementById('tool-rect-select');
+const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect];
+
+let currentTool = null;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+
+const fgColorInput = document.getElementById('fg-color');
+const bgColorInput = document.getElementById('bg-color');
+
+fgColorInput.addEventListener('input', (e) => { fgColor = e.target.value; });
+bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
+

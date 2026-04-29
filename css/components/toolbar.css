@@ -1,0 +1,104 @@
+/* Header & Toolbar */
+.toolbar {
+    height: 56px;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    box-shadow: var(--shadow-sm);
+    z-index: 10;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+}
+
+.menu-bar {
+    display: flex;
+    gap: 4px;
+}
+
+.menu-item {
+    position: relative;
+}
+
+.menu-trigger {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.menu-trigger:hover,
+.menu-trigger.active {
+    background-color: var(--bg-elevated);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 200px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-menu.hidden {
+    display: none;
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.dropdown-item {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: 13px;
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color var(--transition);
+}
+
+.dropdown-item:hover:not(:disabled) {
+    background-color: var(--accent);
+    color: #fff;
+}
+
+.dropdown-item:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.menu-divider {
+    border: 0;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 6px 0;
+}
+
