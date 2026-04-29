@@ -2,6 +2,8 @@
 
 All code is written by the free tier of [Google Antigravity](https://antigravity.google/), using Gemini 3.1 Pro.
 
+https://macmillan333.github.io/VibePhotoshop/
+
 ### How I prompt
 
 Instead of prompting "Build Photoshop", I break the project into small steps and run a "plan - implement - verify" loop for each. For each step I describe my requirement and answer any open questions in Antigravity's plan, then hit submit; I do not review or comment on the generated code.
