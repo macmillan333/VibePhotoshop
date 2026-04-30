@@ -1,7 +1,7 @@
 // --- Tool Management ---
 function setActiveTool(toolId) {
     toolBtns.forEach(btn => btn.classList.remove('active'));
-    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-zoom', 'tool-rect-select', 'alt-down');
+    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'alt-down');
 
     if (currentTool === toolId) {
         currentTool = null;
@@ -21,6 +21,12 @@ function setActiveTool(toolId) {
     } else if (toolId === 'rect-select') {
         toolRectSelect.classList.add('active');
         canvasStack.classList.add('tool-rect-select');
+    } else if (toolId === 'oval-select') {
+        toolOvalSelect.classList.add('active');
+        canvasStack.classList.add('tool-oval-select');
+    } else if (toolId === 'polygon-select') {
+        toolPolygonSelect.classList.add('active');
+        canvasStack.classList.add('tool-polygon-select');
     }
 }
 
@@ -28,6 +34,8 @@ toolMove.addEventListener('click', () => setActiveTool('move'));
 toolPencil.addEventListener('click', () => setActiveTool('pencil'));
 toolZoom.addEventListener('click', () => setActiveTool('zoom'));
 toolRectSelect.addEventListener('click', () => setActiveTool('rect-select'));
+toolOvalSelect.addEventListener('click', () => setActiveTool('oval-select'));
+toolPolygonSelect.addEventListener('click', () => setActiveTool('polygon-select'));
 
 // --- Viewport Management ---
 function applyViewport() {
@@ -84,10 +92,55 @@ function drawPixelBresenham(x0, y0, x1, y1) {
     }
 }
 
+function commitPolygonSelection() {
+    if (polygonPoints.length < 3) {
+        polygonPoints = [];
+        selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+        isSelecting = false;
+        return;
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = documentWidth;
+    tempCanvas.height = documentHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    tempCtx.beginPath();
+    tempCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+    for (let i = 1; i < polygonPoints.length; i++) {
+        tempCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+    }
+    tempCtx.closePath();
+    tempCtx.fillStyle = 'black';
+    tempCtx.fill();
+
+    const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+    
+    if (polygonMode === 'replace') {
+        selectionMask.fill(0);
+    }
+
+    for (let i = 0; i < selectionMask.length; i++) {
+        if (imgData.data[i * 4 + 3] > 128) {
+            if (polygonMode === 'subtract') {
+                selectionMask[i] = 0;
+            } else {
+                selectionMask[i] = 255;
+            }
+        }
+    }
+
+    polygonPoints = [];
+    isSelecting = false;
+    selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+    renderSelectionVisual();
+    saveState();
+}
+
 canvasWrapper.addEventListener('pointerdown', (e) => {
     if (!documentCreated) return;
 
-    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select')) {
+    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select')) {
         isPanning = true;
         panStartX = e.clientX;
         panStartY = e.clientY;
@@ -164,7 +217,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
             moveOriginalSelectionMask = new Uint8Array(selectionMask);
         }
         canvasWrapper.setPointerCapture(e.pointerId);
-    } else if (currentTool === 'rect-select') {
+    } else if (currentTool === 'rect-select' || currentTool === 'oval-select') {
         isSelecting = true;
         if (e.altKey && !e.shiftKey) {
             selectionMode = 'subtract';
@@ -177,6 +230,28 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         selectStartX = coords.x;
         selectStartY = coords.y;
         canvasWrapper.setPointerCapture(e.pointerId);
+    } else if (currentTool === 'polygon-select') {
+        const coords = getCanvasCoords(e);
+        const now = Date.now();
+        
+        if (polygonPoints.length > 0) {
+            const lastPoint = polygonPoints[polygonPoints.length - 1];
+            const dist = Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y);
+            if (window.lastPolygonClickTime && (now - window.lastPolygonClickTime < 300) && dist < 10) {
+                commitPolygonSelection();
+                return;
+            }
+        }
+        
+        if (polygonPoints.length === 0) {
+            isSelecting = true;
+            if (e.altKey && !e.shiftKey) polygonMode = 'subtract';
+            else if (e.shiftKey && !e.altKey) polygonMode = 'add';
+            else polygonMode = 'replace';
+        }
+        
+        polygonPoints.push(coords);
+        window.lastPolygonClickTime = now;
     } else if (currentTool === 'pencil') {
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
@@ -256,6 +331,61 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         selectionDragCtx.strokeRect(x0 + 0.5, y0 + 0.5, x1 - x0, y1 - y0);
         selectionDragCtx.setLineDash([]);
         selectionDragCtx.lineDashOffset = 0;
+
+    } else if (currentTool === 'oval-select' && isSelecting) {
+        const coords = getCanvasCoords(e);
+        const x0 = Math.min(selectStartX, coords.x);
+        const y0 = Math.min(selectStartY, coords.y);
+        const x1 = Math.max(selectStartX, coords.x);
+        const y1 = Math.max(selectStartY, coords.y);
+        const w = x1 - x0;
+        const h = y1 - y0;
+        const cx = x0 + w / 2;
+        const cy = y0 + h / 2;
+        const rx = w / 2;
+        const ry = h / 2;
+
+        selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+        
+        selectionDragCtx.fillStyle = selectionMode === 'subtract'
+            ? 'rgba(255, 50, 50, 0.4)'
+            : 'rgba(92, 107, 255, 0.4)';
+        
+        selectionDragCtx.beginPath();
+        selectionDragCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+        selectionDragCtx.fill();
+
+        selectionDragCtx.setLineDash([5, 5]);
+        selectionDragCtx.lineWidth = 1;
+        selectionDragCtx.strokeStyle = '#ffffff';
+        selectionDragCtx.stroke();
+        
+        selectionDragCtx.lineDashOffset = 5;
+        selectionDragCtx.strokeStyle = '#222222';
+        selectionDragCtx.stroke();
+        selectionDragCtx.setLineDash([]);
+        
+    } else if (currentTool === 'polygon-select' && polygonPoints.length > 0) {
+        const coords = getCanvasCoords(e);
+        selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+        
+        selectionDragCtx.setLineDash([5, 5]);
+        selectionDragCtx.lineWidth = 1;
+        
+        selectionDragCtx.beginPath();
+        selectionDragCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
+        for (let i = 1; i < polygonPoints.length; i++) {
+            selectionDragCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
+        }
+        selectionDragCtx.lineTo(coords.x, coords.y);
+        
+        selectionDragCtx.strokeStyle = '#ffffff';
+        selectionDragCtx.stroke();
+        
+        selectionDragCtx.lineDashOffset = 5;
+        selectionDragCtx.strokeStyle = '#222222';
+        selectionDragCtx.stroke();
+        selectionDragCtx.setLineDash([]);
 
     } else if (currentTool === 'pencil' && isDrawing) {
         const coords = getCanvasCoords(e);
@@ -359,6 +489,54 @@ canvasWrapper.addEventListener('pointerup', (e) => {
         renderSelectionVisual();
         saveState();
 
+    } else if (currentTool === 'oval-select' && isSelecting) {
+        isSelecting = false;
+        selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+
+        const coords = getCanvasCoords(e);
+        const xMinRaw = Math.min(selectStartX, coords.x);
+        const yMinRaw = Math.min(selectStartY, coords.y);
+        const xMaxRaw = Math.max(selectStartX, coords.x);
+        const yMaxRaw = Math.max(selectStartY, coords.y);
+
+        const x0 = Math.max(0, Math.min(documentWidth, xMinRaw));
+        const y0 = Math.max(0, Math.min(documentHeight, yMinRaw));
+        const x1 = Math.max(0, Math.min(documentWidth, xMaxRaw));
+        const y1 = Math.max(0, Math.min(documentHeight, yMaxRaw));
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = documentWidth;
+        tempCanvas.height = documentHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        if (x1 > x0 && y1 > y0) {
+            const w = x1 - x0;
+            const h = y1 - y0;
+            tempCtx.fillStyle = 'black';
+            tempCtx.beginPath();
+            tempCtx.ellipse(x0 + w/2, y0 + h/2, w/2, h/2, 0, 0, 2*Math.PI);
+            tempCtx.fill();
+        }
+
+        const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+        
+        if (selectionMode === 'replace') {
+            selectionMask.fill(0);
+        }
+
+        for (let i = 0; i < selectionMask.length; i++) {
+            if (imgData.data[i * 4 + 3] > 128) {
+                if (selectionMode === 'subtract') {
+                    selectionMask[i] = 0;
+                } else {
+                    selectionMask[i] = 255;
+                }
+            }
+        }
+
+        renderSelectionVisual();
+        saveState();
+
     } else if (currentTool === 'pencil' && isDrawing) {
         isDrawing = false;
         if (activeLayerId) updateLayerThumbnail(activeLayerId);
@@ -389,6 +567,7 @@ canvasWrapper.addEventListener('pointercancel', (e) => {
 
     if (isSelecting) {
         isSelecting = false;
+        polygonPoints = [];
         selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
         renderSelectionVisual();
     }
@@ -405,6 +584,14 @@ canvasWrapper.addEventListener('wheel', (e) => {
         e.preventDefault();
     }
 }, { passive: false });
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && polygonPoints.length > 0) {
+        polygonPoints = [];
+        isSelecting = false;
+        selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
+    }
+});
 
 
 // --- Scale and Resize Functions ---

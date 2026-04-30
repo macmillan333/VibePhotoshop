@@ -5,7 +5,11 @@ const fileDropdown = document.getElementById('file-dropdown');
 const btnNew = document.getElementById('btn-new');
 const btnOpen = document.getElementById('btn-open');
 const btnSave = document.getElementById('btn-save');
-const fileInput = document.getElementById('file-input');
+const btnSaveAs = document.getElementById('btn-save-as');
+const btnImport = document.getElementById('btn-import');
+const btnExport = document.getElementById('btn-export');
+const fileInputVps = document.getElementById('file-input-vps');
+const fileInputImage = document.getElementById('file-input-image');
 
 const editMenuBtn = document.getElementById('edit-menu-btn');
 const editDropdown = document.getElementById('edit-dropdown');
@@ -48,7 +52,9 @@ const toastContainer = document.getElementById('toast-container');
 const layersResizer = document.getElementById('layers-resizer');
 
 // --- State ---
-let currentFileName = 'untitled.png';
+let currentFileName = 'untitled.vps';
+let savedFileHandle = null;       // File System Access API handle for quick-save
+let lastSavedHistoryIndex = -1;   // historyIndex at last save; -1 = never saved
 let documentWidth = 800;
 let documentHeight = 600;
 let documentCreated = false;
@@ -80,6 +86,9 @@ let isSelecting = false;
 let selectStartX = 0;
 let selectStartY = 0;
 let selectionMode = 'replace';
+
+let polygonPoints = [];
+let polygonMode = 'replace';
 
 let clipboardData = null;
 
@@ -125,7 +134,9 @@ const toolMove = document.getElementById('tool-move');
 const toolPencil = document.getElementById('tool-pencil');
 const toolZoom = document.getElementById('tool-zoom');
 const toolRectSelect = document.getElementById('tool-rect-select');
-const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect];
+const toolOvalSelect = document.getElementById('tool-oval-select');
+const toolPolygonSelect = document.getElementById('tool-polygon-select');
+const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect];
 
 let currentTool = null;
 let isDrawing = false;

@@ -110,7 +110,10 @@ document.addEventListener('keydown', (e) => {
     }
 
     if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'z' || e.key === 'Z') {
+        if (e.key === 's' || e.key === 'S') {
+            e.preventDefault();
+            if (documentCreated) saveVpsFile();
+        } else if (e.key === 'z' || e.key === 'Z') {
             e.preventDefault();
             if (e.shiftKey) {
                 redo();
@@ -304,7 +307,9 @@ newCanvasForm.addEventListener('submit', (e) => {
     const height = parseInt(formData.get('height'), 10);
 
     if (width > 0 && height > 0) {
-        currentFileName = 'untitled.png';
+        currentFileName = 'untitled.vps';
+        savedFileHandle = null;
+        lastSavedHistoryIndex = -1;
         initDocument(width, height);
         newCanvasModal.close();
     }
@@ -484,15 +489,39 @@ btnFreeTransform.addEventListener('click', () => {
     startTransform();
 });
 
+// --- File: Open / Save (.vps) ---
+
 btnOpen.addEventListener('click', () => {
-    fileInput.click();
+    fileInputVps.click();
 });
 
-fileInput.addEventListener('change', (event) => {
+fileInputVps.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    openVpsFile(file);
+    fileInputVps.value = '';
+});
+
+btnSave.addEventListener('click', () => {
+    saveVpsFile();
+});
+
+btnSaveAs.addEventListener('click', () => {
+    saveVpsFileAs();
+});
+
+// --- File: Import / Export (flat images) ---
+
+btnImport.addEventListener('click', () => {
+    fileInputImage.click();
+});
+
+fileInputImage.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    currentFileName = file.name;
+    currentFileName = file.name.replace(/\.[^.]+$/, '') + '.vps';
+    savedFileHandle = null;
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
 
@@ -503,6 +532,7 @@ fileInput.addEventListener('change', (event) => {
         updateLayerThumbnail(layer.id);
 
         saveState();
+        markDocumentClean();
         URL.revokeObjectURL(objectUrl);
     };
 
@@ -512,10 +542,10 @@ fileInput.addEventListener('change', (event) => {
     };
 
     img.src = objectUrl;
-    fileInput.value = '';
+    fileInputImage.value = '';
 });
 
-btnSave.addEventListener('click', async () => {
+btnExport.addEventListener('click', async () => {
     if (!documentCreated) return;
 
     const outputCanvas = document.createElement('canvas');
@@ -529,16 +559,44 @@ btnSave.addEventListener('click', async () => {
         }
     }
 
+    const baseName = currentFileName.replace(/\.[^.]+$/, '');
+
     if ('showSaveFilePicker' in window && window.isSecureContext) {
         try {
-            const blob = await new Promise(resolve => outputCanvas.toBlob(resolve, 'image/png'));
             const handle = await window.showSaveFilePicker({
-                suggestedName: `edited_${currentFileName}`,
-                types: [{
-                    description: 'PNG Image',
-                    accept: { 'image/png': ['.png'] },
-                }],
+                suggestedName: baseName + '.png',
+                types: [
+                    {
+                        description: 'PNG Image',
+                        accept: { 'image/png': ['.png'] },
+                    },
+                    {
+                        description: 'JPEG Image',
+                        accept: { 'image/jpeg': ['.jpg', '.jpeg'] },
+                    },
+                ],
             });
+
+            // Determine mime type from the extension the user chose
+            const fileName = handle.name.toLowerCase();
+            const isJpeg = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg');
+            const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
+
+            // For JPEG, composite onto a white background (no transparency)
+            let exportCanvas = outputCanvas;
+            if (isJpeg) {
+                exportCanvas = document.createElement('canvas');
+                exportCanvas.width = documentWidth;
+                exportCanvas.height = documentHeight;
+                const jpgCtx = exportCanvas.getContext('2d');
+                jpgCtx.fillStyle = '#ffffff';
+                jpgCtx.fillRect(0, 0, documentWidth, documentHeight);
+                jpgCtx.drawImage(outputCanvas, 0, 0);
+            }
+
+            const blob = await new Promise(resolve =>
+                exportCanvas.toBlob(resolve, mimeType, isJpeg ? 0.92 : undefined)
+            );
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
@@ -548,11 +606,12 @@ btnSave.addEventListener('click', async () => {
         }
     }
 
+    // Fallback: download as PNG
     outputCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `edited_${currentFileName}`;
+        a.download = baseName + '.png';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
@@ -561,4 +620,14 @@ btnSave.addEventListener('click', async () => {
         }, 100);
     }, 'image/png');
 });
+
+// --- Unsaved Changes Warning ---
+window.addEventListener('beforeunload', (e) => {
+    if (isDocumentDirty()) {
+        e.preventDefault();
+        // Modern browsers ignore custom messages, but setting returnValue is required.
+        e.returnValue = '';
+    }
+});
+
 

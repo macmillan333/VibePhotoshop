@@ -13,13 +13,26 @@ An example prompt:
 ### Features
 
 I only intend to implement a subset of Photoshop features, ones that I regularly use. Currently available features:
-* Create, open and save images
-* Undo and redo via Ctrl+Z and Ctrl+Y only
+* Create, open and save layered project files (.vps format)
+* Import and export flat images (PNG, JPEG, WebP)
+* Undo and redo
 * Tools
+  * Move
   * Pencil
   * Zoom
-  * Change foreground and background color
+  * Selection: rectangle, oval, polygon
 * Layers
   * Create
   * Reorder
   * Delete
+  * Duplicate
+  * Merge
+
+### Browser Compatibility
+
+VibePhotoshop uses the native [Compression Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Compression_Streams_API) for reading and writing `.vps` project files. This API is supported in:
+* **Chrome / Edge** 80+
+* **Firefox** 113+
+* **Safari** 16.4+
+
+Older browsers that lack `CompressionStream` / `DecompressionStream` will not be able to open or save `.vps` files.

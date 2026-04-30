@@ -48,6 +48,8 @@ function initDocument(w, h, skipBaseLayer = false) {
 
     noImageState.classList.add('hidden');
     btnSave.removeAttribute('disabled');
+    btnSaveAs.removeAttribute('disabled');
+    btnExport.removeAttribute('disabled');
     btnAddLayer.removeAttribute('disabled');
     btnUndo.removeAttribute('disabled');
     btnRedo.removeAttribute('disabled');
@@ -60,6 +62,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     if (!skipBaseLayer) {
         createLayer('Background');
         saveState();
+        markDocumentClean();
     }
 }
 

@@ -30,6 +30,7 @@ All central application state is maintained globally to allow seamless interacti
 
 ### 3. Selection Engine (`js/tools.js`)
 - **Bitmap Masking:** Selection is driven by a `Uint8Array` (`selectionMask`). Operations like copying, cutting, or transforming use this array as an alpha mask against the active layer.
+- **Shape Tools:** Marquee tools (Rect, Oval) and Path tools (Polygon) rasterize vector paths or shapes onto a temporary canvas, read the resulting alpha map via `getImageData`, and merge the pixel values into the `selectionMask` (supporting Add/Subtract/Replace modes).
 - **Visual Overlays:** Selection marquees (marching ants) and dragged selection previews are rendered to dedicated `selectionOverlay` and `selectionDragOverlay` canvases layered on top of the document.
 
 ### 4. History / Undo-Redo (`js/history.js`)
@@ -41,7 +42,14 @@ All central application state is maintained globally to allow seamless interacti
 - **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs.
 - **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer.
 
+### 6. File Format Engine (`js/fileformat.js`)
+- **VPS Format:** The app's native layered file format is `.vps` (VibePhotoshop), which is a standard ZIP archive containing a `manifest.json` (document metadata and layer order) plus one RGBA PNG file per layer.
+- **Native ZIP Implementation:** ZIP read/write is implemented from scratch using `CompressionStream('deflate-raw')` / `DecompressionStream('deflate-raw')` and manual binary header construction via `DataView`. No external libraries are used.
+- **File Menu Structure:** "Open" loads `.vps` project files. "Save" writes to the last-used file handle (quick-save via `savedFileHandle`); "Save As" always shows a file picker dialog. "Import Image" loads flat bitmaps (PNG/JPEG/WebP) into a new project. "Export" flattens visible layers and lets the user choose between PNG and JPEG formats.
+- **Dirty Tracking:** `lastSavedHistoryIndex` tracks the history position of the last save. A `beforeunload` listener warns the user if they try to close the page with unsaved changes. Exporting does not count as a save.
+
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.
 - **Rely on Globals:** When adding new tools or features, utilize the existing global state in `globals.js` rather than creating isolated state management.
+- **Manual Testing Required:** We have had trouble with automated tests in the past. All AI-driven code changes must be manually tested rather than relying on automated browser test suites.
 - **Architecture Shift for Vectors/Text:** As the app expands to Text and Vector layers, the History engine will need an update to store parametric data (e.g., font size, path data) instead of raw `getImageData` to remain memory efficient.

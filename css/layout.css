@@ -101,15 +101,21 @@
 }
 
 #canvas-stack.tool-pencil,
-#canvas-stack.tool-rect-select {
+#canvas-stack.tool-rect-select,
+#canvas-stack.tool-oval-select,
+#canvas-stack.tool-polygon-select {
     cursor: crosshair;
 }
 
-#canvas-stack.tool-rect-select.shift-down {
+#canvas-stack.tool-rect-select.shift-down,
+#canvas-stack.tool-oval-select.shift-down,
+#canvas-stack.tool-polygon-select.shift-down {
     cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M18 16v8M14 20h8" stroke="white" stroke-width="3"/><path d="M18 16v8M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
 }
 
-#canvas-stack.tool-rect-select.alt-down {
+#canvas-stack.tool-rect-select.alt-down,
+#canvas-stack.tool-oval-select.alt-down,
+#canvas-stack.tool-polygon-select.alt-down {
     cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M14 20h8" stroke="white" stroke-width="3"/><path d="M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
 }
 
