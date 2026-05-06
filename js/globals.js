@@ -136,12 +136,21 @@ const toolZoom = document.getElementById('tool-zoom');
 const toolRectSelect = document.getElementById('tool-rect-select');
 const toolOvalSelect = document.getElementById('tool-oval-select');
 const toolPolygonSelect = document.getElementById('tool-polygon-select');
-const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect];
+const toolText = document.getElementById('tool-text');
+const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect, toolText];
 
 let currentTool = null;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
+
+let isTypingText = false;
+let currentText = '';
+let textX = 0;
+let textY = 0;
+let textLayerId = null;
+let showCaret = true;
+let caretBlinkInterval = null;
 
 const fgColorInput = document.getElementById('fg-color');
 const bgColorInput = document.getElementById('bg-color');

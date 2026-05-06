@@ -275,7 +275,11 @@ async function buildVpsBlob() {
             name: layer.name,
             file: pngFilename,
             visible: layer.visible,
-            opacity: 1.0
+            opacity: 1.0,
+            type: layer.type,
+            textContent: layer.textContent,
+            textX: layer.textX,
+            textY: layer.textY
         });
 
         const blob = await canvasToBlob(layer.canvas);
@@ -397,12 +401,18 @@ async function openVpsFile(file) {
         savedFileHandle = null;
         initDocument(manifest.width, manifest.height, true);
 
-        // Load layers in order (top to bottom)
-        for (const layerInfo of manifest.layers) {
+        // Load layers in reverse order (bottom to top) since createLayer unshifts
+        for (let i = manifest.layers.length - 1; i >= 0; i--) {
+            const layerInfo = manifest.layers[i];
             const pngBytes = zipFiles.get(layerInfo.file);
             if (!pngBytes) {
                 console.warn(`Missing layer file: ${layerInfo.file}, creating empty layer`);
-                const layer = createLayer(layerInfo.name);
+                const layer = createLayer(layerInfo.name, layerInfo.type || 'pixel');
+                if (layer.type === 'text') {
+                    layer.textContent = layerInfo.textContent || '';
+                    layer.textX = layerInfo.textX || 0;
+                    layer.textY = layerInfo.textY || 0;
+                }
                 layer.visible = layerInfo.visible;
                 if (!layer.visible) {
                     layer.canvas.style.display = 'none';
@@ -411,7 +421,12 @@ async function openVpsFile(file) {
             }
 
             const img = await loadImageFromBytes(pngBytes);
-            const layer = createLayer(layerInfo.name);
+            const layer = createLayer(layerInfo.name, layerInfo.type || 'pixel');
+            if (layer.type === 'text') {
+                layer.textContent = layerInfo.textContent || '';
+                layer.textX = layerInfo.textX || 0;
+                layer.textY = layerInfo.textY || 0;
+            }
             layer.ctx.drawImage(img, 0, 0);
             layer.visible = layerInfo.visible;
             if (!layer.visible) {

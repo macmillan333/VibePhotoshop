@@ -94,7 +94,7 @@ function getActiveLayerObj() {
 
 let draggedLayerId = null;
 
-function createLayer(name = `Layer ${layerCounter + 1}`) {
+function createLayer(name = `Layer ${layerCounter + 1}`, type = 'pixel') {
     layerCounter++;
     const id = `layer-${layerCounter}`;
 
@@ -111,7 +111,12 @@ function createLayer(name = `Layer ${layerCounter + 1}`) {
     canvasStack.appendChild(selectionOverlay);
     canvasStack.appendChild(selectionDragOverlay);
 
-    const layerObj = { id, name, canvas: c, ctx: cx, visible: true };
+    const layerObj = { id, name, canvas: c, ctx: cx, visible: true, type };
+    if (type === 'text') {
+        layerObj.textContent = '';
+        layerObj.textX = 0;
+        layerObj.textY = 0;
+    }
     layers.unshift(layerObj);
 
     selectedLayerIds.clear();
@@ -167,7 +172,16 @@ function updateLayerThumbnail(layerId) {
 
     const tCtx = thumbCanvas.getContext('2d');
     tCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
-    tCtx.drawImage(layerObj.canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    
+    if (layerObj.type === 'text') {
+        tCtx.fillStyle = '#ffffff';
+        tCtx.font = '20px Inter, sans-serif';
+        tCtx.textAlign = 'center';
+        tCtx.textBaseline = 'middle';
+        tCtx.fillText('T', thumbCanvas.width / 2, thumbCanvas.height / 2);
+    } else {
+        tCtx.drawImage(layerObj.canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+    }
 }
 
 function renderLayersList() {

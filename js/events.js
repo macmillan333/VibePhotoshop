@@ -79,6 +79,24 @@ function executeClear(activeObj, hasSelection) {
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
 
+    if (isTypingText) {
+        e.preventDefault();
+        if (e.key === 'Escape') {
+            commitTextLayer();
+            saveState();
+        } else if (e.key === 'Backspace') {
+            currentText = currentText.slice(0, -1);
+            renderTextLayer();
+        } else if (e.key === 'Enter') {
+            currentText += '\n';
+            renderTextLayer();
+        } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            currentText += e.key;
+            renderTextLayer();
+        }
+        return;
+    }
+
     if (e.key === 'Alt') {
         canvasStack.classList.add('alt-down');
     }
@@ -554,7 +572,7 @@ btnExport.addEventListener('click', async () => {
     const outputCtx = outputCanvas.getContext('2d');
 
     for (let i = layers.length - 1; i >= 0; i--) {
-        if (layers[i].visible) {
+        if (layers[i].visible && layers[i].type !== 'text') {
             outputCtx.drawImage(layers[i].canvas, 0, 0);
         }
     }

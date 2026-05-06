@@ -27,6 +27,10 @@ function setActiveTool(toolId) {
     } else if (toolId === 'polygon-select') {
         toolPolygonSelect.classList.add('active');
         canvasStack.classList.add('tool-polygon-select');
+    } else if (toolId === 'text') {
+        toolText.classList.add('active');
+        canvasStack.classList.add('tool-text');
+        canvasWrapper.style.cursor = 'text';
     }
 }
 
@@ -36,6 +40,7 @@ toolZoom.addEventListener('click', () => setActiveTool('zoom'));
 toolRectSelect.addEventListener('click', () => setActiveTool('rect-select'));
 toolOvalSelect.addEventListener('click', () => setActiveTool('oval-select'));
 toolPolygonSelect.addEventListener('click', () => setActiveTool('polygon-select'));
+toolText.addEventListener('click', () => setActiveTool('text'));
 
 // --- Viewport Management ---
 function applyViewport() {
@@ -137,10 +142,45 @@ function commitPolygonSelection() {
     saveState();
 }
 
+function renderTextLayer() {
+    const layer = layers.find(l => l.id === textLayerId);
+    if (!layer) return;
+    
+    layer.ctx.clearRect(0, 0, documentWidth, documentHeight);
+    layer.ctx.fillStyle = fgColor;
+    layer.ctx.font = '24px monospace';
+    layer.ctx.textBaseline = 'top';
+    
+    const textToRender = currentText + (isTypingText && showCaret ? '|' : '');
+    const lines = textToRender.split('\n');
+    let y = textY;
+    
+    for (const line of lines) {
+        layer.ctx.fillText(line, textX, y);
+        y += 28;
+    }
+}
+
+function commitTextLayer() {
+    isTypingText = false;
+    clearInterval(caretBlinkInterval);
+    if (currentText.trim() === '') {
+        deleteLayer(textLayerId);
+    } else {
+        renderTextLayer();
+        const layer = layers.find(l => l.id === textLayerId);
+        if (layer) {
+            layer.textContent = currentText;
+            layer.name = currentText.split('\n')[0].substring(0, 20) || 'Text Layer';
+            renderLayersList();
+        }
+    }
+}
+
 canvasWrapper.addEventListener('pointerdown', (e) => {
     if (!documentCreated) return;
 
-    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select')) {
+    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select' && currentTool !== 'text')) {
         isPanning = true;
         panStartX = e.clientX;
         panStartY = e.clientY;
@@ -248,10 +288,55 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
             if (e.altKey && !e.shiftKey) polygonMode = 'subtract';
             else if (e.shiftKey && !e.altKey) polygonMode = 'add';
             else polygonMode = 'replace';
+            polygonPoints.push({ x: coords.x, y: coords.y });
+            renderSelectionVisual();
+        } else {
+            polygonPoints.push({ x: coords.x, y: coords.y });
+            renderSelectionVisual();
+        }
+    } else if (currentTool === 'text') {
+        if (isTypingText) {
+            commitTextLayer();
+            saveState();
+            return;
         }
         
-        polygonPoints.push(coords);
-        window.lastPolygonClickTime = now;
+        isTypingText = true;
+        const coords = getCanvasCoords(e);
+        const activeObj = getActiveLayerObj();
+        let clickedExistingText = false;
+
+        if (activeObj && activeObj.type === 'text') {
+            const pxData = activeObj.ctx.getImageData(coords.x, coords.y, 1, 1).data;
+            const hit = pxData[3] > 0;
+            const nearStart = Math.abs(coords.x - activeObj.textX) < 20 && Math.abs(coords.y - activeObj.textY) < 20;
+            
+            if (hit || nearStart) {
+                textLayerId = activeObj.id;
+                currentText = activeObj.textContent || "";
+                textX = activeObj.textX || coords.x;
+                textY = activeObj.textY || coords.y;
+                clickedExistingText = true;
+            }
+        }
+
+        if (!clickedExistingText) {
+            textX = coords.x;
+            textY = coords.y;
+            currentText = "";
+            textLayerId = createLayer("Text Layer", "text").id;
+            const newObj = getActiveLayerObj();
+            newObj.textX = textX;
+            newObj.textY = textY;
+        }
+
+        showCaret = true;
+        renderTextLayer();
+
+        caretBlinkInterval = setInterval(() => {
+            showCaret = !showCaret;
+            renderTextLayer();
+        }, 500);
     } else if (currentTool === 'pencil') {
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
@@ -1153,7 +1238,7 @@ ctxMergeSelected.addEventListener('click', () => {
     let topmostIndex = layers.length;
 
     for (let i = layers.length - 1; i >= 0; i--) {
-        if (selectedLayerIds.has(layers[i].id)) {
+        if (selectedLayerIds.has(layers[i].id) && layers[i].type !== 'text') {
             sortedSelectedLayers.push(layers[i]);
             if (i < topmostIndex) topmostIndex = i;
         }
