@@ -142,36 +142,55 @@ function commitPolygonSelection() {
     saveState();
 }
 
-function renderTextLayer() {
+function renderTextLayerHTML() {
     const layer = layers.find(l => l.id === textLayerId);
     if (!layer) return;
-    
+
+    const html = textEditor.innerHTML;
+    if (!html.trim() && textEditor.textContent.trim() === '') return;
+
     layer.ctx.clearRect(0, 0, documentWidth, documentHeight);
-    layer.ctx.fillStyle = fgColor;
-    layer.ctx.font = '24px monospace';
-    layer.ctx.textBaseline = 'top';
-    
-    const textToRender = currentText + (isTypingText && showCaret ? '|' : '');
-    const lines = textToRender.split('\n');
-    let y = textY;
-    
-    for (const line of lines) {
-        layer.ctx.fillText(line, textX, y);
-        y += 28;
+
+    // Convert HTML to well-formed XML to prevent SVG parsing errors
+    let xmlSafeHtml = '';
+    for (const node of textEditor.childNodes) {
+        xmlSafeHtml += new XMLSerializer().serializeToString(node);
     }
+
+    // Position text within the SVG using absolute positioning so we can draw at (0,0).
+    // IMPORTANT: No indentation inside the div to avoid white-space: pre-wrap rendering extra spaces.
+    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${documentWidth}" height="${documentHeight}"><foreignObject x="${textX}" y="${textY}" width="${documentWidth - textX}" height="${documentHeight - textY}"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 24px; color: ${fgColor}; line-height: 1.2; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 0;">${xmlSafeHtml}</div></foreignObject></svg>`;
+    const img = new Image();
+    
+    // Use data URI instead of Blob URL to prevent cross-origin canvas tainting in Chromium
+    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+    
+    img.onload = () => {
+        layer.ctx.drawImage(img, 0, 0);
+        updateLayerThumbnail(layer.id);
+        saveState();
+    };
+    img.src = url;
 }
 
 function commitTextLayer() {
+    if (!isTypingText) return;
     isTypingText = false;
-    clearInterval(caretBlinkInterval);
-    if (currentText.trim() === '') {
+    textEditor.classList.add('hidden');
+    textToolbar.classList.add('hidden');
+    
+    const html = textEditor.innerHTML;
+    const textContent = textEditor.textContent;
+
+    if (textContent.trim() === '') {
         deleteLayer(textLayerId);
     } else {
-        renderTextLayer();
         const layer = layers.find(l => l.id === textLayerId);
         if (layer) {
-            layer.textContent = currentText;
-            layer.name = currentText.split('\n')[0].substring(0, 20) || 'Text Layer';
+            layer.textContent = textContent;
+            layer.htmlContent = html;
+            layer.name = textContent.split('\n')[0].substring(0, 20) || 'Text Layer';
+            renderTextLayerHTML();
             renderLayersList();
         }
     }
@@ -179,6 +198,10 @@ function commitTextLayer() {
 
 canvasWrapper.addEventListener('pointerdown', (e) => {
     if (!documentCreated) return;
+
+    if (e.target === textEditor || textEditor.contains(e.target) || e.target === textToolbar || textToolbar.contains(e.target)) {
+        return;
+    }
 
     if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select' && currentTool !== 'text')) {
         isPanning = true;
@@ -297,7 +320,6 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
     } else if (currentTool === 'text') {
         if (isTypingText) {
             commitTextLayer();
-            saveState();
             return;
         }
         
@@ -307,36 +329,52 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         let clickedExistingText = false;
 
         if (activeObj && activeObj.type === 'text') {
-            const pxData = activeObj.ctx.getImageData(coords.x, coords.y, 1, 1).data;
-            const hit = pxData[3] > 0;
+            // Check a padded region around the click for any non-transparent pixels
+            const hitPad = 20;
+            const sampleX = Math.max(0, Math.round(coords.x) - hitPad);
+            const sampleY = Math.max(0, Math.round(coords.y) - hitPad);
+            const sampleW = Math.min(documentWidth - sampleX, hitPad * 2 + 1);
+            const sampleH = Math.min(documentHeight - sampleY, hitPad * 2 + 1);
+            let hit = false;
+            if (sampleW > 0 && sampleH > 0) {
+                const pxData = activeObj.ctx.getImageData(sampleX, sampleY, sampleW, sampleH).data;
+                for (let i = 3; i < pxData.length; i += 4) {
+                    if (pxData[i] > 0) { hit = true; break; }
+                }
+            }
             const nearStart = Math.abs(coords.x - activeObj.textX) < 20 && Math.abs(coords.y - activeObj.textY) < 20;
             
             if (hit || nearStart) {
                 textLayerId = activeObj.id;
-                currentText = activeObj.textContent || "";
                 textX = activeObj.textX || coords.x;
                 textY = activeObj.textY || coords.y;
+                textEditor.innerHTML = activeObj.htmlContent || activeObj.textContent || "";
                 clickedExistingText = true;
+                activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
             }
         }
 
         if (!clickedExistingText) {
             textX = coords.x;
             textY = coords.y;
-            currentText = "";
+            textEditor.innerHTML = "";
             textLayerId = createLayer("Text Layer", "text").id;
             const newObj = getActiveLayerObj();
             newObj.textX = textX;
             newObj.textY = textY;
         }
 
-        showCaret = true;
-        renderTextLayer();
-
-        caretBlinkInterval = setInterval(() => {
-            showCaret = !showCaret;
-            renderTextLayer();
-        }, 500);
+        textEditor.style.left = `${textX}px`;
+        textEditor.style.top = `${textY}px`;
+        textEditor.style.color = fgColor;
+        textEditor.classList.remove('hidden');
+        textToolbar.classList.remove('hidden');
+        
+        // Ensure the editor uses span tags for styling
+        setTimeout(() => {
+            textEditor.focus();
+            document.execCommand('styleWithCSS', false, true);
+        }, 0);
     } else if (currentTool === 'pencil') {
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
@@ -1318,4 +1356,106 @@ document.addEventListener('keydown', (e) => {
 });
 
 transformBox.addEventListener('dblclick', applyTransform);
+
+
+// --- Text Toolbar Interactions ---
+
+// When a toolbar control is clicked (especially number input spinners), focus
+// leaves the contenteditable text editor, which collapses the text selection.
+// We save the selection on pointerdown (before focus moves) so we can restore
+// it in the change handler and apply formatting to the correct text range.
+let savedTextSelection = null;
+
+function saveTextSelection() {
+    const sel = window.getSelection();
+    if (sel.rangeCount > 0 && textEditor.contains(sel.anchorNode)) {
+        savedTextSelection = sel.getRangeAt(0).cloneRange();
+    }
+}
+
+function restoreTextSelection() {
+    if (savedTextSelection) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedTextSelection);
+        savedTextSelection = null;
+    }
+}
+
+// Save selection when any toolbar input/select/button receives pointerdown
+[fontSizeInput, letterSpacingInput, lineHeightInput, fontFamilySelect].forEach(el => {
+    el.addEventListener('pointerdown', () => {
+        saveTextSelection();
+    });
+});
+
+textStyleBtns.forEach(btn => {
+    btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const cmd = btn.dataset.command;
+        document.execCommand(cmd, false, null);
+    });
+});
+
+fontFamilySelect.addEventListener('change', (e) => {
+    restoreTextSelection();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('fontName', false, e.target.value);
+    textEditor.focus();
+});
+
+fontSizeInput.addEventListener('change', (e) => {
+    const val = e.target.value;
+    restoreTextSelection();
+    document.execCommand('styleWithCSS', false, true);
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+        const span = document.createElement('span');
+        span.style.fontSize = val + 'px';
+        const range = selection.getRangeAt(0);
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(span);
+        selection.addRange(newRange);
+    }
+    textEditor.focus();
+});
+
+letterSpacingInput.addEventListener('change', (e) => {
+    const val = e.target.value;
+    restoreTextSelection();
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+        const span = document.createElement('span');
+        span.style.letterSpacing = val + 'px';
+        const range = selection.getRangeAt(0);
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(span);
+        selection.addRange(newRange);
+    }
+    textEditor.focus();
+});
+
+lineHeightInput.addEventListener('change', (e) => {
+    const val = e.target.value;
+    restoreTextSelection();
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0 && !selection.isCollapsed) {
+        const span = document.createElement('span');
+        span.style.lineHeight = val;
+        const range = selection.getRangeAt(0);
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(span);
+        selection.addRange(newRange);
+    }
+    textEditor.focus();
+});
 

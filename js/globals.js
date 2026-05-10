@@ -158,3 +158,10 @@ const bgColorInput = document.getElementById('bg-color');
 fgColorInput.addEventListener('input', (e) => { fgColor = e.target.value; });
 bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
 
+const textEditor = document.getElementById('text-editor');
+const textToolbar = document.getElementById('text-toolbar');
+const textStyleBtns = document.querySelectorAll('.text-style-btn');
+const fontFamilySelect = document.getElementById('font-family-select');
+const fontSizeInput = document.getElementById('font-size-input');
+const letterSpacingInput = document.getElementById('letter-spacing-input');
+const lineHeightInput = document.getElementById('line-height-input');

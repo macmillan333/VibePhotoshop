@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="css/components/sidebar.css">
     <link rel="stylesheet" href="css/components/layers.css">
     <link rel="stylesheet" href="css/components/modals.css">
+    <link rel="stylesheet" href="css/components/text-toolbar.css">
 </head>
 
 <body>
@@ -142,9 +143,60 @@
                             <div class="handle bottom-center" data-handle="bc"></div>
                             <div class="handle bottom-right" data-handle="br"></div>
                         </div>
+                        <div id="text-editor" class="hidden" contenteditable="true" spellcheck="false"></div>
                     </div>
                     <div id="no-image-state">
                         <p>Open an image to start editing</p>
+                    </div>
+                    
+                    <!-- Floating Text Toolbar -->
+                    <div id="text-toolbar" class="floating-toolbar hidden">
+                        <div class="toolbar-group">
+                            <select id="font-family-select" title="Font Family">
+                                <option value="Inter" style="font-family: Inter;">Inter</option>
+                                <option value="Arial" style="font-family: Arial;">Arial</option>
+                                <option value="'Courier New'" style="font-family: 'Courier New';">Courier New</option>
+                                <option value="Georgia" style="font-family: Georgia;">Georgia</option>
+                                <option value="'Times New Roman'" style="font-family: 'Times New Roman';">Times New Roman</option>
+                                <option value="Verdana" style="font-family: Verdana;">Verdana</option>
+                            </select>
+                            <input type="number" id="font-size-input" value="24" min="1" max="999" title="Font Size (px)">
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn text-style-btn" data-command="bold" title="Bold (Ctrl+B)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>
+                            </button>
+                            <button class="tool-btn text-style-btn" data-command="italic" title="Italic (Ctrl+I)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
+                            </button>
+                            <button class="tool-btn text-style-btn" data-command="strikeThrough" title="Strikethrough">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4H9a3 3 0 0 0-2.83 4"></path><path d="M14 12a4 4 0 0 1 0 8H6"></path><line x1="4" y1="12" x2="20" y2="12"></line></svg>
+                            </button>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn text-style-btn" data-command="justifyLeft" title="Align Left">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+                            </button>
+                            <button class="tool-btn text-style-btn" data-command="justifyCenter" title="Align Center">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg>
+                            </button>
+                            <button class="tool-btn text-style-btn" data-command="justifyRight" title="Align Right">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+                            </button>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <div class="toolbar-input-group" title="Letter Spacing (px)">
+                                <span>LS</span>
+                                <input type="number" id="letter-spacing-input" value="0" step="0.5">
+                            </div>
+                            <div class="toolbar-input-group" title="Line Spacing">
+                                <span>LH</span>
+                                <input type="number" id="line-height-input" value="1.2" step="0.1" min="0.1">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>

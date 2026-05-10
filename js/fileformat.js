@@ -278,6 +278,7 @@ async function buildVpsBlob() {
             opacity: 1.0,
             type: layer.type,
             textContent: layer.textContent,
+            htmlContent: layer.htmlContent,
             textX: layer.textX,
             textY: layer.textY
         });
@@ -410,6 +411,7 @@ async function openVpsFile(file) {
                 const layer = createLayer(layerInfo.name, layerInfo.type || 'pixel');
                 if (layer.type === 'text') {
                     layer.textContent = layerInfo.textContent || '';
+                    layer.htmlContent = layerInfo.htmlContent || '';
                     layer.textX = layerInfo.textX || 0;
                     layer.textY = layerInfo.textY || 0;
                 }
@@ -424,6 +426,7 @@ async function openVpsFile(file) {
             const layer = createLayer(layerInfo.name, layerInfo.type || 'pixel');
             if (layer.type === 'text') {
                 layer.textContent = layerInfo.textContent || '';
+                layer.htmlContent = layerInfo.htmlContent || '';
                 layer.textX = layerInfo.textX || 0;
                 layer.textY = layerInfo.textY || 0;
             }

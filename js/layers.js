@@ -114,6 +114,7 @@ function createLayer(name = `Layer ${layerCounter + 1}`, type = 'pixel') {
     const layerObj = { id, name, canvas: c, ctx: cx, visible: true, type };
     if (type === 'text') {
         layerObj.textContent = '';
+        layerObj.htmlContent = '';
         layerObj.textX = 0;
         layerObj.textY = 0;
     }
