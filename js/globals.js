@@ -23,6 +23,7 @@ const btnFreeTransform = document.getElementById('btn-free-transform');
 
 const layerContextMenu = document.getElementById('layer-context-menu');
 const ctxDuplicateLayer = document.getElementById('ctx-duplicate-layer');
+const ctxRasterizeLayer = document.getElementById('ctx-rasterize-layer');
 const ctxMergeSelected = document.getElementById('ctx-merge-selected');
 const ctxDeleteLayer = document.getElementById('ctx-delete-layer');
 

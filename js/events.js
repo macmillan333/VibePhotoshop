@@ -555,7 +555,7 @@ btnExport.addEventListener('click', async () => {
     const outputCtx = outputCanvas.getContext('2d');
 
     for (let i = layers.length - 1; i >= 0; i--) {
-        if (layers[i].visible && layers[i].type !== 'text') {
+        if (layers[i].visible) {
             outputCtx.drawImage(layers[i].canvas, 0, 0);
         }
     }

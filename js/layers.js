@@ -279,9 +279,17 @@ function renderLayersList() {
             }
 
             ctxMergeSelected.disabled = selectedLayerIds.size < 2;
-            layerContextMenu.style.left = `${e.clientX}px`;
-            layerContextMenu.style.top = `${e.clientY}px`;
+
+            let hasText = false;
+            for (const selId of selectedLayerIds) {
+                const l = layers.find(layer => layer.id === selId);
+                if (l && l.type === 'text') hasText = true;
+            }
+            ctxRasterizeLayer.disabled = !hasText;
+
             layerContextMenu.classList.remove('hidden');
+            layerContextMenu.style.left = `${e.clientX - layerContextMenu.offsetWidth}px`;
+            layerContextMenu.style.top = `${e.clientY}px`;
         });
 
         title.addEventListener('dblclick', (e) => {
@@ -395,6 +403,138 @@ layersList.addEventListener('drop', (e) => {
 
 btnAddLayer.addEventListener('click', () => {
     createLayer();
+    saveState();
+});
+
+// --- Layer Context Menu Actions ---
+document.addEventListener('click', (e) => {
+    if (!layerContextMenu.contains(e.target)) {
+        layerContextMenu.classList.add('hidden');
+    }
+});
+
+ctxDuplicateLayer.addEventListener('click', () => {
+    layerContextMenu.classList.add('hidden');
+    const activeObj = getActiveLayerObj();
+    if (!activeObj) return;
+
+    const idx = layers.findIndex(l => l.id === activeObj.id);
+    const newLayer = createLayer(activeObj.name + ' copy');
+    const createdLayerObj = layers.shift();
+    layers.splice(idx, 0, createdLayerObj);
+
+    createdLayerObj.ctx.drawImage(activeObj.canvas, 0, 0);
+    updateZIndices();
+    renderLayersList();
+    setActiveLayer(createdLayerObj.id);
+    saveState();
+});
+
+ctxDeleteLayer.addEventListener('click', () => {
+    layerContextMenu.classList.add('hidden');
+    let deleted = false;
+    const idsToDelete = Array.from(selectedLayerIds);
+
+    for (let delId of idsToDelete) {
+        if (layers.length <= 1) break;
+        const layerObj = layers.find(l => l.id === delId);
+        if (layerObj) {
+            layerObj.canvas.remove();
+            layers = layers.filter(l => l.id !== delId);
+            deleted = true;
+        }
+    }
+
+    if (deleted) {
+        selectedLayerIds.clear();
+        const topId = layers[0].id;
+        selectedLayerIds.add(topId);
+        lastClickedLayerId = topId;
+        setActiveLayer(topId);
+        renderLayersList();
+        saveState();
+    }
+});
+
+ctxRasterizeLayer.addEventListener('click', () => {
+    layerContextMenu.classList.add('hidden');
+    let changed = false;
+    for (const id of selectedLayerIds) {
+        const layer = layers.find(l => l.id === id);
+        if (layer && layer.type === 'text') {
+            layer.type = 'pixel';
+            delete layer.textContent;
+            delete layer.htmlContent;
+            delete layer.textX;
+            delete layer.textY;
+            updateLayerThumbnail(layer.id);
+            changed = true;
+        }
+    }
+    if (changed) {
+        renderLayersList();
+        saveState();
+    }
+});
+
+ctxMergeSelected.addEventListener('click', () => {
+    layerContextMenu.classList.add('hidden');
+    if (selectedLayerIds.size < 2) return;
+
+    const sortedSelectedLayers = [];
+    let topmostIndex = layers.length;
+
+    for (let i = layers.length - 1; i >= 0; i--) {
+        if (selectedLayerIds.has(layers[i].id)) {
+            sortedSelectedLayers.push(layers[i]);
+            if (i < topmostIndex) topmostIndex = i;
+        }
+    }
+
+    const topmostName = layers[topmostIndex].name;
+
+    const mergedCanvas = document.createElement('canvas');
+    mergedCanvas.width = documentWidth;
+    mergedCanvas.height = documentHeight;
+    const mCtx = mergedCanvas.getContext('2d', { willReadFrequently: true });
+
+    for (const lObj of sortedSelectedLayers) {
+        if (lObj.visible) {
+            mCtx.drawImage(lObj.canvas, 0, 0);
+        }
+    }
+
+    for (const lObj of sortedSelectedLayers) {
+        lObj.canvas.remove();
+    }
+
+    layers = layers.filter(l => !selectedLayerIds.has(l.id));
+
+    layerCounter++;
+    const newId = `layer-${layerCounter}`;
+    const c = document.createElement('canvas');
+    c.id = newId;
+    c.width = documentWidth;
+    c.height = documentHeight;
+    const cx = c.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(mergedCanvas, 0, 0);
+
+    canvasStack.appendChild(c);
+    canvasStack.appendChild(selectionOverlay);
+    canvasStack.appendChild(selectionDragOverlay);
+    canvasStack.appendChild(transformBox);
+
+    const newLayerObj = { id: newId, name: topmostName, canvas: c, ctx: cx, visible: true };
+
+    layers.splice(topmostIndex, 0, newLayerObj);
+
+    selectedLayerIds.clear();
+    selectedLayerIds.add(newId);
+    lastClickedLayerId = newId;
+
+    updateZIndices();
+    renderLayersList();
+    setActiveLayer(newId);
     saveState();
 });
 
