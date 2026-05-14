@@ -4,8 +4,8 @@
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--surface-light);
-    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 8px;
     display: flex;
@@ -30,14 +30,14 @@
 .toolbar-divider {
     width: 1px;
     height: 24px;
-    background: var(--border);
+    background: var(--border-color);
     margin: 0 4px;
 }
 
 .floating-toolbar select {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 13px;
@@ -46,14 +46,19 @@
     width: 130px;
 }
 
+.floating-toolbar select option {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
 .floating-toolbar select:focus {
     border-color: var(--accent);
 }
 
 .floating-toolbar input[type="number"] {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 4px;
     width: 50px;
@@ -70,8 +75,8 @@
 .toolbar-input-group {
     display: flex;
     align-items: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 0 4px;
 }

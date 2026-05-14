@@ -173,7 +173,7 @@ function updateLayerThumbnail(layerId) {
 
     const tCtx = thumbCanvas.getContext('2d');
     tCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
-    
+
     if (layerObj.type === 'text') {
         tCtx.fillStyle = '#ffffff';
         tCtx.font = '20px Inter, sans-serif';

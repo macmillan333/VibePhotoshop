@@ -1,8 +1,7 @@
 # VibePhotoshop Architecture Overview
 
 ## Project Goals
-The end goal of VibePhotoshop is to implement a robust subset of Photoshop features directly in the browser. While it is currently a fundamental bitmap editor, future expansions are planned to include:
-- Text layers
+The end goal of VibePhotoshop is to implement a robust subset of Photoshop features directly in the browser. The app currently supports bitmap editing and rich text layers. Future expansions are planned to include:
 - Vector layers
 - Filters
 - Masks
@@ -42,7 +41,16 @@ All central application state is maintained globally to allow seamless interacti
 - **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs.
 - **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer.
 
-### 6. File Format Engine (`js/fileformat.js`)
+### 6. Text Tool (`js/tools.js`, `css/components/text-toolbar.css`)
+- **Layer Type:** Text layers are stored as regular layer objects with `type: 'text'` and extra properties: `textContent` (plain text), `htmlContent` (rich HTML), `textX`, and `textY` (origin coordinates).
+- **Editing Overlay:** When the user clicks on the canvas with the Text tool, a `contenteditable` div (`#text-editor`) is positioned at the click point inside `#canvas-stack`. This allows native browser text editing (cursor, selection, clipboard) while visually overlaying the canvas.
+- **Floating Toolbar:** A floating toolbar (`#text-toolbar`, styled in `text-toolbar.css`) appears during editing and provides rich formatting controls: font family (`<select>`), font size, bold/italic/strikethrough (via `document.execCommand`), text alignment, letter spacing, and line height.
+- **Selection Preservation:** Toolbar number inputs (font size, letter spacing, line height) have spinner buttons that steal focus from the `contenteditable` div. To prevent this from collapsing the text selection, the current `Range` is saved on `pointerdown` and restored in the `change` handler before applying formatting.
+- **SVG foreignObject Rendering:** When editing is committed (`commitTextLayer`), the editor's HTML is serialized via `XMLSerializer`, embedded in an SVG `<foreignObject>`, and drawn to the layer's canvas using a `data:` URI (not Blob URL) to avoid cross-origin canvas tainting.
+- **Hit Testing:** Clicking near existing text re-opens the editor instead of creating a new layer. Detection uses a padded area check (20px radius around the click point sampled via `getImageData`) plus a proximity check to the text origin, making the hit box forgiving.
+- **Commit Flow:** Clicking outside the editor or toolbar triggers `commitTextLayer()`, which hides the overlay, stores `htmlContent`/`textContent` on the layer object, and re-renders the text to the canvas. Empty text layers are automatically deleted.
+
+### 7. File Format Engine (`js/fileformat.js`)
 - **VPS Format:** The app's native layered file format is `.vps` (VibePhotoshop), which is a standard ZIP archive containing a `manifest.json` (document metadata and layer order) plus one RGBA PNG file per layer.
 - **Native ZIP Implementation:** ZIP read/write is implemented from scratch using `CompressionStream('deflate-raw')` / `DecompressionStream('deflate-raw')` and manual binary header construction via `DataView`. No external libraries are used.
 - **File Menu Structure:** "Open" loads `.vps` project files. "Save" writes to the last-used file handle (quick-save via `savedFileHandle`); "Save As" always shows a file picker dialog. "Import Image" loads flat bitmaps (PNG/JPEG/WebP) into a new project. "Export" flattens visible layers and lets the user choose between PNG and JPEG formats.
@@ -52,4 +60,6 @@ All central application state is maintained globally to allow seamless interacti
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.
 - **Rely on Globals:** When adding new tools or features, utilize the existing global state in `globals.js` rather than creating isolated state management.
 - **Manual Testing Required:** We have had trouble with automated tests in the past. All AI-driven code changes must be manually tested rather than relying on automated browser test suites.
-- **Architecture Shift for Vectors/Text:** As the app expands to Text and Vector layers, the History engine will need an update to store parametric data (e.g., font size, path data) instead of raw `getImageData` to remain memory efficient.
+- **Text Layer Persistence:** Text layers are stored in `.vps` files with their parametric data (`textContent`, `htmlContent`, `textX`, `textY`, `type`) in the manifest alongside a rasterized PNG preview. On load, these properties are restored so text layers remain re-editable.
+- **Architecture Shift for Vectors:** As the app expands to Vector layers, the History engine will need an update to store parametric data (e.g., path data) instead of raw `getImageData` to remain memory efficient. Text layers already suffer from this—the history engine currently snapshots their rasterized pixels rather than their HTML content.
+- **Line Endings (LF only):** All source files in this repository use LF (`\n`) line endings — never CRLF (`\r\n`). This is critical for AI-assisted editing: the agent's `TargetContent` string matching operates on LF-terminated strings, so CRLF files cause edit failures even when the visible text looks identical. Any new files created by AI or developers must be saved with LF line endings. In VS Code this is shown in the status bar (bottom-right); ensure it reads "LF" and not "CRLF".

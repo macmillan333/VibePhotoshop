@@ -109,7 +109,7 @@ function commitPolygonSelection() {
     tempCanvas.width = documentWidth;
     tempCanvas.height = documentHeight;
     const tempCtx = tempCanvas.getContext('2d');
-    
+
     tempCtx.beginPath();
     tempCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
     for (let i = 1; i < polygonPoints.length; i++) {
@@ -120,7 +120,7 @@ function commitPolygonSelection() {
     tempCtx.fill();
 
     const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
-    
+
     if (polygonMode === 'replace') {
         selectionMask.fill(0);
     }
@@ -157,14 +157,15 @@ function renderTextLayerHTML() {
         xmlSafeHtml += new XMLSerializer().serializeToString(node);
     }
 
-    // Position text within the SVG using absolute positioning so we can draw at (0,0).
-    // IMPORTANT: No indentation inside the div to avoid white-space: pre-wrap rendering extra spaces.
-    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${documentWidth}" height="${documentHeight}"><foreignObject x="${textX}" y="${textY}" width="${documentWidth - textX}" height="${documentHeight - textY}"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 24px; color: ${fgColor}; line-height: 1.2; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 0;">${xmlSafeHtml}</div></foreignObject></svg>`;
+    // Use the editor's current base color (set when editing started) as the default,
+    // but let inline color styles from execCommand('foreColor') override it.
+    const baseColor = textEditor.style.color || fgColor;
+    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${documentWidth}" height="${documentHeight}"><foreignObject x="${textX}" y="${textY}" width="${documentWidth - textX}" height="${documentHeight - textY}"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 24px; color: ${baseColor}; line-height: 1.2; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 0;">${xmlSafeHtml}</div></foreignObject></svg>`;
     const img = new Image();
-    
+
     // Use data URI instead of Blob URL to prevent cross-origin canvas tainting in Chromium
     const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
-    
+
     img.onload = () => {
         layer.ctx.drawImage(img, 0, 0);
         updateLayerThumbnail(layer.id);
@@ -178,7 +179,7 @@ function commitTextLayer() {
     isTypingText = false;
     textEditor.classList.add('hidden');
     textToolbar.classList.add('hidden');
-    
+
     const html = textEditor.innerHTML;
     const textContent = textEditor.textContent;
 
@@ -296,7 +297,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
     } else if (currentTool === 'polygon-select') {
         const coords = getCanvasCoords(e);
         const now = Date.now();
-        
+
         if (polygonPoints.length > 0) {
             const lastPoint = polygonPoints[polygonPoints.length - 1];
             const dist = Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y);
@@ -305,7 +306,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
                 return;
             }
         }
-        
+
         if (polygonPoints.length === 0) {
             isSelecting = true;
             if (e.altKey && !e.shiftKey) polygonMode = 'subtract';
@@ -322,7 +323,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
             commitTextLayer();
             return;
         }
-        
+
         isTypingText = true;
         const coords = getCanvasCoords(e);
         const activeObj = getActiveLayerObj();
@@ -343,7 +344,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
                 }
             }
             const nearStart = Math.abs(coords.x - activeObj.textX) < 20 && Math.abs(coords.y - activeObj.textY) < 20;
-            
+
             if (hit || nearStart) {
                 textLayerId = activeObj.id;
                 textX = activeObj.textX || coords.x;
@@ -369,7 +370,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         textEditor.style.color = fgColor;
         textEditor.classList.remove('hidden');
         textToolbar.classList.remove('hidden');
-        
+
         // Ensure the editor uses span tags for styling
         setTimeout(() => {
             textEditor.focus();
@@ -469,11 +470,11 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         const ry = h / 2;
 
         selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
-        
+
         selectionDragCtx.fillStyle = selectionMode === 'subtract'
             ? 'rgba(255, 50, 50, 0.4)'
             : 'rgba(92, 107, 255, 0.4)';
-        
+
         selectionDragCtx.beginPath();
         selectionDragCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
         selectionDragCtx.fill();
@@ -482,29 +483,29 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         selectionDragCtx.lineWidth = 1;
         selectionDragCtx.strokeStyle = '#ffffff';
         selectionDragCtx.stroke();
-        
+
         selectionDragCtx.lineDashOffset = 5;
         selectionDragCtx.strokeStyle = '#222222';
         selectionDragCtx.stroke();
         selectionDragCtx.setLineDash([]);
-        
+
     } else if (currentTool === 'polygon-select' && polygonPoints.length > 0) {
         const coords = getCanvasCoords(e);
         selectionDragCtx.clearRect(0, 0, documentWidth, documentHeight);
-        
+
         selectionDragCtx.setLineDash([5, 5]);
         selectionDragCtx.lineWidth = 1;
-        
+
         selectionDragCtx.beginPath();
         selectionDragCtx.moveTo(polygonPoints[0].x, polygonPoints[0].y);
         for (let i = 1; i < polygonPoints.length; i++) {
             selectionDragCtx.lineTo(polygonPoints[i].x, polygonPoints[i].y);
         }
         selectionDragCtx.lineTo(coords.x, coords.y);
-        
+
         selectionDragCtx.strokeStyle = '#ffffff';
         selectionDragCtx.stroke();
-        
+
         selectionDragCtx.lineDashOffset = 5;
         selectionDragCtx.strokeStyle = '#222222';
         selectionDragCtx.stroke();
@@ -637,12 +638,12 @@ canvasWrapper.addEventListener('pointerup', (e) => {
             const h = y1 - y0;
             tempCtx.fillStyle = 'black';
             tempCtx.beginPath();
-            tempCtx.ellipse(x0 + w/2, y0 + h/2, w/2, h/2, 0, 0, 2*Math.PI);
+            tempCtx.ellipse(x0 + w / 2, y0 + h / 2, w / 2, h / 2, 0, 0, 2 * Math.PI);
             tempCtx.fill();
         }
 
         const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
-        
+
         if (selectionMode === 'replace') {
             selectionMask.fill(0);
         }
