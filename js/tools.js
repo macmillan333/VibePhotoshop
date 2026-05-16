@@ -15,9 +15,17 @@ function setActiveTool(toolId) {
     } else if (toolId === 'pencil') {
         toolPencil.classList.add('active');
         canvasStack.classList.add('tool-pencil');
+        brushToolbar.classList.add('hidden');
+    } else if (toolId === 'brush') {
+        toolBrush.classList.add('active');
+        canvasStack.classList.add('tool-brush');
+        brushToolbar.classList.remove('hidden');
+        canvasWrapper.style.cursor = 'none';
+        updateBrushStamp();
     } else if (toolId === 'zoom') {
         toolZoom.classList.add('active');
         canvasStack.classList.add('tool-zoom');
+        brushToolbar.classList.add('hidden');
     } else if (toolId === 'rect-select') {
         toolRectSelect.classList.add('active');
         canvasStack.classList.add('tool-rect-select');
@@ -31,20 +39,74 @@ function setActiveTool(toolId) {
         toolText.classList.add('active');
         canvasStack.classList.add('tool-text');
         canvasWrapper.style.cursor = 'text';
+        brushToolbar.classList.add('hidden');
+    }
+    
+    if (toolId !== 'brush' && toolId !== 'text') {
+        brushToolbar.classList.add('hidden');
+        canvasWrapper.style.cursor = '';
+    }
+    
+    if (toolId !== 'brush') {
+        brushCursor.classList.remove('active');
     }
 }
 
 toolMove.addEventListener('click', () => setActiveTool('move'));
 toolPencil.addEventListener('click', () => setActiveTool('pencil'));
+toolBrush.addEventListener('click', () => setActiveTool('brush'));
 toolZoom.addEventListener('click', () => setActiveTool('zoom'));
 toolRectSelect.addEventListener('click', () => setActiveTool('rect-select'));
 toolOvalSelect.addEventListener('click', () => setActiveTool('oval-select'));
 toolPolygonSelect.addEventListener('click', () => setActiveTool('polygon-select'));
 toolText.addEventListener('click', () => setActiveTool('text'));
 
+// Brush Toolbar Events
+brushRadiusInput.addEventListener('input', (e) => {
+    brushRadius = parseInt(e.target.value, 10);
+    updateBrushStamp();
+});
+brushHardnessSlider.addEventListener('input', (e) => {
+    brushHardness = parseInt(e.target.value, 10);
+    brushHardnessInput.value = brushHardness;
+    updateBrushStamp();
+});
+brushHardnessInput.addEventListener('input', (e) => {
+    brushHardness = parseInt(e.target.value, 10);
+    brushHardnessSlider.value = brushHardness;
+    updateBrushStamp();
+});
+brushStrengthSlider.addEventListener('input', (e) => {
+    brushStrength = parseInt(e.target.value, 10);
+    brushStrengthInput.value = brushStrength;
+    updateBrushStamp();
+});
+brushStrengthInput.addEventListener('input', (e) => {
+    brushStrength = parseInt(e.target.value, 10);
+    brushStrengthSlider.value = brushStrength;
+    updateBrushStamp();
+});
+brushSpacingSlider.addEventListener('input', (e) => {
+    brushSpacing = parseInt(e.target.value, 10);
+    brushSpacingInput.value = brushSpacing;
+});
+brushSpacingInput.addEventListener('input', (e) => {
+    brushSpacing = parseInt(e.target.value, 10);
+    brushSpacingSlider.value = brushSpacing;
+});
+
 // --- Viewport Management ---
+function updateBrushCursorSize() {
+    if (brushCursor) {
+        const visualSize = brushRadius * 2 * zoomLevel;
+        brushCursor.style.width = visualSize + 'px';
+        brushCursor.style.height = visualSize + 'px';
+    }
+}
+
 function applyViewport() {
     canvasStack.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+    updateBrushCursorSize();
 }
 
 function zoomAtPoint(clientX, clientY, newZoom) {
@@ -97,6 +159,120 @@ function drawPixelBresenham(x0, y0, x1, y1) {
     }
 }
 
+function updateBrushStamp() {
+    const size = brushRadius * 2;
+    brushStampCanvas.width = size;
+    brushStampCanvas.height = size;
+    
+    // Update custom cursor size based on zoom
+    updateBrushCursorSize();
+    
+    const ctx = brushStampCanvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+
+    // Extract r, g, b from hex fgColor
+    let r = parseInt(fgColor.slice(1, 3), 16);
+    let g = parseInt(fgColor.slice(3, 5), 16);
+    let b = parseInt(fgColor.slice(5, 7), 16);
+
+    if (brushHardness >= 100) {
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+        ctx.beginPath();
+        ctx.arc(brushRadius, brushRadius, brushRadius, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        const gradient = ctx.createRadialGradient(brushRadius, brushRadius, 0, brushRadius, brushRadius, brushRadius);
+        const hardStop = brushHardness / 100;
+        
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
+        if (hardStop > 0) {
+            gradient.addColorStop(hardStop, `rgba(${r}, ${g}, ${b}, 1)`);
+        }
+        
+        // Use a smoother non-linear tail
+        const numStops = 10;
+        for (let i = 1; i <= numStops; i++) {
+            const t = i / numStops;
+            const pos = hardStop + (1 - hardStop) * t;
+            const ease = Math.pow(1 - t, 1.5); 
+            gradient.addColorStop(pos, `rgba(${r}, ${g}, ${b}, ${ease})`);
+        }
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(brushRadius, brushRadius, brushRadius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function compositeBrushBoundingBox(minX, minY, maxX, maxY) {
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) return;
+    const _ctx = activeObj.ctx;
+
+    minX = Math.max(0, Math.floor(minX));
+    minY = Math.max(0, Math.floor(minY));
+    maxX = Math.min(documentWidth, Math.ceil(maxX));
+    maxY = Math.min(documentHeight, Math.ceil(maxY));
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    
+    if (bw <= 0 || bh <= 0) return;
+    
+    _ctx.clearRect(minX, minY, bw, bh);
+    _ctx.drawImage(brushOriginalLayerCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
+    
+    _ctx.save();
+    _ctx.globalAlpha = brushStrength / 100;
+    _ctx.drawImage(brushStrokeCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
+    _ctx.restore();
+}
+
+function drawBrushLine(x0, y0, x1, y1) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const dist = Math.hypot(dx, dy);
+    
+    if (dist === 0) return;
+    
+    // Spacing is based on diameter (radius * 2)
+    const step = Math.max(1, brushRadius * 2 * (brushSpacing / 100)); 
+    
+    let traveled = 0;
+    let stamped = false;
+    
+    const pad = brushRadius + 2;
+    let minX = documentWidth;
+    let minY = documentHeight;
+    let maxX = 0;
+    let maxY = 0;
+
+    while (brushDistSinceLastStamp + dist - traveled >= step) {
+        const remainingToNextStamp = step - brushDistSinceLastStamp;
+        traveled += remainingToNextStamp;
+        
+        const t = traveled / dist;
+        const stampX = x0 + dx * t;
+        const stampY = y0 + dy * t;
+        
+        brushStrokeCtx.drawImage(brushStampCanvas, Math.round(stampX) - brushRadius, Math.round(stampY) - brushRadius);
+        
+        minX = Math.min(minX, stampX - pad);
+        minY = Math.min(minY, stampY - pad);
+        maxX = Math.max(maxX, stampX + pad);
+        maxY = Math.max(maxY, stampY + pad);
+        
+        brushDistSinceLastStamp = 0;
+        stamped = true;
+    }
+    
+    brushDistSinceLastStamp += (dist - traveled);
+    
+    if (stamped) {
+        compositeBrushBoundingBox(minX, minY, maxX, maxY);
+    }
+}
+
 function commitPolygonSelection() {
     if (polygonPoints.length < 3) {
         polygonPoints = [];
@@ -145,11 +321,11 @@ function commitPolygonSelection() {
 canvasWrapper.addEventListener('pointerdown', (e) => {
     if (!documentCreated) return;
 
-    if (e.target === textEditor || textEditor.contains(e.target) || e.target === textToolbar || textToolbar.contains(e.target)) {
+    if (e.target === textEditor || textEditor.contains(e.target) || e.target === textToolbar || textToolbar.contains(e.target) || e.target === brushToolbar || brushToolbar.contains(e.target)) {
         return;
     }
 
-    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select' && currentTool !== 'text')) {
+    if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'brush' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select' && currentTool !== 'text')) {
         isPanning = true;
         panStartX = e.clientX;
         panStartY = e.clientY;
@@ -331,11 +507,43 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         lastY = coords.y;
         drawPixelBresenham(lastX, lastY, coords.x, coords.y);
         canvasWrapper.setPointerCapture(e.pointerId);
+    } else if (currentTool === 'brush') {
+        const activeObj = getActiveLayerObj();
+        if (!activeObj || !activeObj.visible) return;
+
+        isDrawing = true;
+        const coords = getCanvasCoords(e);
+        lastX = coords.x;
+        lastY = coords.y;
+        
+        // Initialize brush stroke tracking
+        brushStrokeCanvas.width = documentWidth;
+        brushStrokeCanvas.height = documentHeight;
+        brushStrokeCtx.globalCompositeOperation = 'source-over';
+        
+        brushOriginalLayerCanvas = document.createElement('canvas');
+        brushOriginalLayerCanvas.width = documentWidth;
+        brushOriginalLayerCanvas.height = documentHeight;
+        brushOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
+        
+        brushDistSinceLastStamp = 0;
+        brushStrokeCtx.drawImage(brushStampCanvas, Math.round(lastX) - brushRadius, Math.round(lastY) - brushRadius);
+        
+        const pad = brushRadius + 2;
+        compositeBrushBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
+        
+        canvasWrapper.setPointerCapture(e.pointerId);
     }
 });
 
 canvasWrapper.addEventListener('pointermove', (e) => {
     if (!documentCreated) return;
+
+    if (currentTool === 'brush') {
+        brushCursor.classList.add('active');
+        brushCursor.style.left = e.clientX + 'px';
+        brushCursor.style.top = e.clientY + 'px';
+    }
 
     if (isPanning) {
         const dx = e.clientX - panStartX;
@@ -459,6 +667,11 @@ canvasWrapper.addEventListener('pointermove', (e) => {
     } else if (currentTool === 'pencil' && isDrawing) {
         const coords = getCanvasCoords(e);
         drawPixelBresenham(lastX, lastY, coords.x, coords.y);
+        lastX = coords.x;
+        lastY = coords.y;
+    } else if (currentTool === 'brush' && isDrawing) {
+        const coords = getCanvasCoords(e);
+        drawBrushLine(lastX, lastY, coords.x, coords.y);
         lastX = coords.x;
         lastY = coords.y;
     }
@@ -606,8 +819,11 @@ canvasWrapper.addEventListener('pointerup', (e) => {
         renderSelectionVisual();
         saveState();
 
-    } else if (currentTool === 'pencil' && isDrawing) {
+    } else if ((currentTool === 'pencil' || currentTool === 'brush') && isDrawing) {
         isDrawing = false;
+        if (currentTool === 'brush') {
+            brushOriginalLayerCanvas = null;
+        }
         if (activeLayerId) updateLayerThumbnail(activeLayerId);
         saveState();
     }
@@ -643,8 +859,25 @@ canvasWrapper.addEventListener('pointercancel', (e) => {
 
     if (isDrawing) {
         isDrawing = false;
+        if (currentTool === 'brush') {
+            brushOriginalLayerCanvas = null;
+        }
         if (activeLayerId) updateLayerThumbnail(activeLayerId);
         saveState();
+    }
+});
+
+canvasWrapper.addEventListener('pointerleave', (e) => {
+    if (currentTool === 'brush') {
+        brushCursor.classList.remove('active');
+    }
+});
+
+canvasWrapper.addEventListener('pointerenter', (e) => {
+    if (currentTool === 'brush') {
+        brushCursor.classList.add('active');
+        brushCursor.style.left = e.clientX + 'px';
+        brushCursor.style.top = e.clientY + 'px';
     }
 });
 

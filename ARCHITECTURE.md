@@ -56,6 +56,11 @@ All central application state is maintained globally to allow seamless interacti
 - **File Menu Structure:** "Open" loads `.vps` project files. "Save" writes to the last-used file handle (quick-save via `savedFileHandle`); "Save As" always shows a file picker dialog. "Import Image" loads flat bitmaps (PNG/JPEG/WebP) into a new project. "Export" flattens visible layers and lets the user choose between PNG and JPEG formats.
 - **Dirty Tracking:** `lastSavedHistoryIndex` tracks the history position of the last save. A `beforeunload` listener warns the user if they try to close the page with unsaved changes. Exporting does not count as a save.
 
+### 8. Brush Engine (`js/tools.js`)
+- **Distance-Based Spacing:** To prevent "alpha build-up" (where stamping a soft brush too densely causes it to look hard), the engine mathematically tracks mouse dragging distance and stamps only when the distance exceeds the configured percentage of the brush's diameter (`brushSpacing`, defaults to 25%).
+- **Off-Screen Stamping:** When settings change, a radial gradient matching the user's `brushHardness` percentage is generated onto an off-screen `brushStampCanvas`. A quadratic curve is used to simulate a smooth, Photoshop-like airbrush tail.
+- **Stroke-Level Opacity:** To ensure that a continuous stroke respects the `brushStrength` limit (so overlapping a 30% stroke over itself doesn't cause it to darken), stamps are drawn at 100% opacity onto a full-sized `brushStrokeCanvas`. On every mouse move, the engine isolates the active line segment's bounding box, colorizes it on `brushColorCanvas` (via `source-in` with the foreground color), and draws it over a pristine snapshot of the layer (`brushOriginalLayerCanvas`) with the `brushStrength` applied globally. This creates a mathematically perfect, unified semi-transparent stroke regardless of stroke length or scrub speed.
+
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.
 - **Rely on Globals:** When adding new tools or features, utilize the existing global state in `globals.js` rather than creating isolated state management.

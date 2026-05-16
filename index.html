@@ -82,6 +82,13 @@
                             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                         </svg>
                     </button>
+                    <button class="tool-btn" id="tool-brush" title="Brush Tool (B)" data-tool="brush">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            <path d="M9 11a4 4 0 1 1-4 4 4 4 0 0 1 4-4z"></path>
+                        </svg>
+                    </button>
                     <button class="tool-btn" id="tool-rect-select" title="Rectangular Marquee Tool (M)" data-tool="rect-select">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-dasharray="3 3">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -198,6 +205,40 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Floating Brush Toolbar -->
+                    <div id="brush-toolbar" class="floating-toolbar hidden">
+                        <div class="toolbar-group">
+                            <div class="toolbar-input-group" title="Brush Radius (px)">
+                                <span>Size</span>
+                                <input type="number" id="brush-radius-input" value="20" min="1" max="1000">
+                            </div>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <div class="toolbar-input-group" title="Brush Hardness (%)">
+                                <span>Hardness</span>
+                                <input type="range" id="brush-hardness-slider" value="50" min="0" max="100">
+                                <input type="number" id="brush-hardness-input" value="50" min="0" max="100" style="width: 40px;">
+                            </div>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <div class="toolbar-input-group" title="Brush Strength/Flow (%)">
+                                <span>Strength</span>
+                                <input type="range" id="brush-strength-slider" value="100" min="1" max="100">
+                                <input type="number" id="brush-strength-input" value="100" min="1" max="100" style="width: 40px;">
+                            </div>
+                        </div>
+                        <div class="toolbar-divider"></div>
+                        <div class="toolbar-group">
+                            <div class="toolbar-input-group" title="Brush Spacing (%)">
+                                <span>Spacing</span>
+                                <input type="range" id="brush-spacing-slider" value="25" min="1" max="100">
+                                <input type="number" id="brush-spacing-input" value="25" min="1" max="100" style="width: 40px;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
 
@@ -222,6 +263,9 @@
 
     <!-- Toast Notifications -->
     <div id="toast-container" class="toast-container"></div>
+
+    <!-- Brush Custom Cursor -->
+    <div id="brush-cursor" class="hidden"></div>
 
     <!-- Modals -->
     <dialog id="new-canvas-modal" class="modal">

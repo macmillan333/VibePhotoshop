@@ -21,8 +21,10 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
 * Tools
   * Move
   * Pencil
+  * Brush
   * Zoom
   * Selection: rectangle, oval, polygon
+  * Text
 * Layers
   * Create
   * Reorder

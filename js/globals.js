@@ -133,17 +133,31 @@ let bgColor = '#ffffff';
 
 const toolMove = document.getElementById('tool-move');
 const toolPencil = document.getElementById('tool-pencil');
+const toolBrush = document.getElementById('tool-brush');
 const toolZoom = document.getElementById('tool-zoom');
 const toolRectSelect = document.getElementById('tool-rect-select');
 const toolOvalSelect = document.getElementById('tool-oval-select');
 const toolPolygonSelect = document.getElementById('tool-polygon-select');
 const toolText = document.getElementById('tool-text');
-const toolBtns = [toolMove, toolPencil, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect, toolText];
+const toolBtns = [toolMove, toolPencil, toolBrush, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect, toolText];
 
 let currentTool = null;
 let isDrawing = false;
 let lastX = 0;
 let lastY = 0;
+
+// Brush Subsystem
+let brushRadius = 20;
+let brushHardness = 50;
+let brushStrength = 100;
+let brushSpacing = 25;
+let brushStampCanvas = document.createElement('canvas');
+const brushStrokeCanvas = document.createElement('canvas');
+const brushStrokeCtx = brushStrokeCanvas.getContext('2d');
+const brushColorCanvas = document.createElement('canvas');
+const brushColorCtx = brushColorCanvas.getContext('2d');
+let brushOriginalLayerCanvas = null;
+let brushDistSinceLastStamp = 0;
 
 let isTypingText = false;
 let currentText = '';
@@ -181,6 +195,9 @@ fgColorInput.addEventListener('input', (e) => {
             }
         }
     }
+    if (typeof updateBrushStamp === 'function') {
+        updateBrushStamp();
+    }
 });
 bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
 
@@ -191,3 +208,13 @@ const fontFamilySelect = document.getElementById('font-family-select');
 const fontSizeInput = document.getElementById('font-size-input');
 const letterSpacingInput = document.getElementById('letter-spacing-input');
 const lineHeightInput = document.getElementById('line-height-input');
+
+const brushToolbar = document.getElementById('brush-toolbar');
+const brushRadiusInput = document.getElementById('brush-radius-input');
+const brushHardnessSlider = document.getElementById('brush-hardness-slider');
+const brushHardnessInput = document.getElementById('brush-hardness-input');
+const brushStrengthSlider = document.getElementById('brush-strength-slider');
+const brushStrengthInput = document.getElementById('brush-strength-input');
+const brushSpacingSlider = document.getElementById('brush-spacing-slider');
+const brushSpacingInput = document.getElementById('brush-spacing-input');
+const brushCursor = document.getElementById('brush-cursor');
