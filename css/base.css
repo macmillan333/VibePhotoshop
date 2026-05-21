@@ -78,10 +78,9 @@ body {
     background-color: #262630;
 }
 
-#brush-cursor {
+#brush-cursor, #eraser-cursor {
     position: fixed;
     pointer-events: none;
-    border-radius: 50%;
     border: 1px solid rgba(0, 0, 0, 0.7);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
     transform: translate(-50%, -50%);
@@ -90,6 +89,18 @@ body {
     mix-blend-mode: difference;
 }
 
-#brush-cursor.active {
+#brush-cursor {
+    border-radius: 50%;
+}
+
+#eraser-cursor {
+    border-radius: 50%;
+}
+
+#eraser-cursor.square {
+    border-radius: 0;
+}
+
+#brush-cursor.active, #eraser-cursor.active {
     display: block;
 }

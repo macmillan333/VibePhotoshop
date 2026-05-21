@@ -62,12 +62,27 @@ function restoreState(state) {
     canvasStack.appendChild(selectionDragOverlay);
     canvasStack.appendChild(transformBox);
 
-    activeLayerId = state.activeLayerId;
+    // Preserve current layer selection if the layer still exists in the
+    // restored state; otherwise fall back to the snapshot's activeLayerId.
+    const restoredIds = new Set(layers.map(l => l.id));
+    if (!restoredIds.has(activeLayerId)) {
+        activeLayerId = state.activeLayerId;
+    }
+
+    // Keep only selectedLayerIds that still exist; if none survive, select active
+    for (const id of selectedLayerIds) {
+        if (!restoredIds.has(id)) selectedLayerIds.delete(id);
+    }
+    if (selectedLayerIds.size === 0) {
+        selectedLayerIds.add(activeLayerId);
+    }
+    if (!restoredIds.has(lastClickedLayerId)) {
+        lastClickedLayerId = activeLayerId;
+    }
+
     updateZIndices();
     renderLayersList();
-
-    const newActive = document.getElementById(`list-item-${activeLayerId}`);
-    if (newActive) newActive.classList.add('active');
+    setActiveLayer(activeLayerId);
 
     // Snapshot perfectly restored array
     selectionMask = new Uint8Array(state.selectionMask);

@@ -1,7 +1,7 @@
 // --- Tool Management ---
 function setActiveTool(toolId) {
     toolBtns.forEach(btn => btn.classList.remove('active'));
-    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'alt-down');
+    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-brush', 'tool-eraser', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'tool-text', 'tool-eyedropper', 'alt-down');
 
     if (currentTool === toolId) {
         currentTool = null;
@@ -16,16 +16,26 @@ function setActiveTool(toolId) {
         toolPencil.classList.add('active');
         canvasStack.classList.add('tool-pencil');
         brushToolbar.classList.add('hidden');
+        eraserToolbar.classList.add('hidden');
     } else if (toolId === 'brush') {
         toolBrush.classList.add('active');
         canvasStack.classList.add('tool-brush');
         brushToolbar.classList.remove('hidden');
+        eraserToolbar.classList.add('hidden');
         canvasWrapper.style.cursor = 'none';
         updateBrushStamp();
+    } else if (toolId === 'eraser') {
+        toolEraser.classList.add('active');
+        canvasStack.classList.add('tool-eraser');
+        eraserToolbar.classList.remove('hidden');
+        brushToolbar.classList.add('hidden');
+        canvasWrapper.style.cursor = 'none';
+        updateEraserStamp();
     } else if (toolId === 'zoom') {
         toolZoom.classList.add('active');
         canvasStack.classList.add('tool-zoom');
         brushToolbar.classList.add('hidden');
+        eraserToolbar.classList.add('hidden');
     } else if (toolId === 'rect-select') {
         toolRectSelect.classList.add('active');
         canvasStack.classList.add('tool-rect-select');
@@ -40,15 +50,29 @@ function setActiveTool(toolId) {
         canvasStack.classList.add('tool-text');
         canvasWrapper.style.cursor = 'text';
         brushToolbar.classList.add('hidden');
+        eraserToolbar.classList.add('hidden');
+        eyedropperToolbar.classList.add('hidden');
+    } else if (toolId === 'eyedropper') {
+        toolEyedropper.classList.add('active');
+        canvasStack.classList.add('tool-eyedropper');
+        canvasWrapper.style.cursor = 'crosshair';
+        brushToolbar.classList.add('hidden');
+        eraserToolbar.classList.add('hidden');
+        eyedropperToolbar.classList.remove('hidden');
     }
     
-    if (toolId !== 'brush' && toolId !== 'text') {
+    if (toolId !== 'brush' && toolId !== 'text' && toolId !== 'eraser' && toolId !== 'eyedropper') {
         brushToolbar.classList.add('hidden');
+        eraserToolbar.classList.add('hidden');
+        eyedropperToolbar.classList.add('hidden');
         canvasWrapper.style.cursor = '';
     }
     
     if (toolId !== 'brush') {
         brushCursor.classList.remove('active');
+    }
+    if (toolId !== 'eraser') {
+        eraserCursor.classList.remove('active');
     }
 }
 
@@ -60,6 +84,8 @@ toolRectSelect.addEventListener('click', () => setActiveTool('rect-select'));
 toolOvalSelect.addEventListener('click', () => setActiveTool('oval-select'));
 toolPolygonSelect.addEventListener('click', () => setActiveTool('polygon-select'));
 toolText.addEventListener('click', () => setActiveTool('text'));
+toolEraser.addEventListener('click', () => setActiveTool('eraser'));
+toolEyedropper.addEventListener('click', () => setActiveTool('eyedropper'));
 
 // Brush Toolbar Events
 brushRadiusInput.addEventListener('input', (e) => {
@@ -95,6 +121,41 @@ brushSpacingInput.addEventListener('input', (e) => {
     brushSpacingSlider.value = brushSpacing;
 });
 
+// Eraser Toolbar Events
+eraserRadiusInput.addEventListener('input', (e) => {
+    eraserRadius = parseInt(e.target.value, 10);
+    updateEraserStamp();
+});
+eraserHardnessSlider.addEventListener('input', (e) => {
+    eraserHardness = parseInt(e.target.value, 10);
+    eraserHardnessInput.value = eraserHardness;
+    updateEraserStamp();
+});
+eraserHardnessInput.addEventListener('input', (e) => {
+    eraserHardness = parseInt(e.target.value, 10);
+    eraserHardnessSlider.value = eraserHardness;
+    updateEraserStamp();
+});
+eraserStrengthSlider.addEventListener('input', (e) => {
+    eraserStrength = parseInt(e.target.value, 10);
+    eraserStrengthInput.value = eraserStrength;
+    updateEraserStamp();
+});
+eraserStrengthInput.addEventListener('input', (e) => {
+    eraserStrength = parseInt(e.target.value, 10);
+    eraserStrengthSlider.value = eraserStrength;
+    updateEraserStamp();
+});
+eraserShapeSelect.addEventListener('change', (e) => {
+    eraserShape = e.target.value;
+    if (eraserShape === 'square') {
+        eraserCursor.classList.add('square');
+    } else {
+        eraserCursor.classList.remove('square');
+    }
+    updateEraserStamp();
+});
+
 // --- Viewport Management ---
 function updateBrushCursorSize() {
     if (brushCursor) {
@@ -104,9 +165,18 @@ function updateBrushCursorSize() {
     }
 }
 
+function updateEraserCursorSize() {
+    if (eraserCursor) {
+        const visualSize = eraserRadius * 2 * zoomLevel;
+        eraserCursor.style.width = visualSize + 'px';
+        eraserCursor.style.height = visualSize + 'px';
+    }
+}
+
 function applyViewport() {
     canvasStack.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
     updateBrushCursorSize();
+    updateEraserCursorSize();
 }
 
 function zoomAtPoint(clientX, clientY, newZoom) {
@@ -270,6 +340,187 @@ function drawBrushLine(x0, y0, x1, y1) {
     
     if (stamped) {
         compositeBrushBoundingBox(minX, minY, maxX, maxY);
+    }
+}
+
+function updateEraserStamp() {
+    const size = eraserRadius * 2;
+    eraserStampCanvas.width = size;
+    eraserStampCanvas.height = size;
+    
+    updateEraserCursorSize();
+    
+    const ctx = eraserStampCanvas.getContext('2d');
+    ctx.clearRect(0, 0, size, size);
+
+    if (eraserShape === 'square') {
+        const hardDist = eraserRadius * (eraserHardness / 100);
+        const softDist = eraserRadius - hardDist;
+        const imgData = ctx.createImageData(size, size);
+        for(let y=0; y<size; y++){
+            for(let x=0; x<size; x++){
+                let distToEdge = Math.min(x, size-1-x, y, size-1-y);
+                let alpha = 255;
+                if(distToEdge < softDist && softDist > 0) {
+                    let t = 1 - (distToEdge / softDist);
+                    let ease = Math.pow(1 - t, 1.5);
+                    alpha = Math.floor(ease * 255);
+                }
+                const i = (y*size + x)*4;
+                imgData.data[i] = 255;
+                imgData.data[i+1] = 255;
+                imgData.data[i+2] = 255;
+                imgData.data[i+3] = alpha;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    } else {
+        if (eraserHardness >= 100) {
+            ctx.fillStyle = `rgba(255, 255, 255, 1)`;
+            ctx.beginPath();
+            ctx.arc(eraserRadius, eraserRadius, eraserRadius, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            const gradient = ctx.createRadialGradient(eraserRadius, eraserRadius, 0, eraserRadius, eraserRadius, eraserRadius);
+            const hardStop = eraserHardness / 100;
+            gradient.addColorStop(0, `rgba(255, 255, 255, 1)`);
+            if (hardStop > 0) gradient.addColorStop(hardStop, `rgba(255, 255, 255, 1)`);
+            const numStops = 10;
+            for (let i = 1; i <= numStops; i++) {
+                const t = i / numStops;
+                const pos = hardStop + (1 - hardStop) * t;
+                const ease = Math.pow(1 - t, 1.5); 
+                gradient.addColorStop(pos, `rgba(255, 255, 255, ${ease})`);
+            }
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(eraserRadius, eraserRadius, eraserRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+canvasWrapper.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+function compositeEraserBoundingBox(minX, minY, maxX, maxY) {
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) return;
+    const _ctx = activeObj.ctx;
+
+    minX = Math.max(0, Math.floor(minX));
+    minY = Math.max(0, Math.floor(minY));
+    maxX = Math.min(documentWidth, Math.ceil(maxX));
+    maxY = Math.min(documentHeight, Math.ceil(maxY));
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    
+    if (bw <= 0 || bh <= 0) return;
+    
+    _ctx.clearRect(minX, minY, bw, bh);
+    _ctx.drawImage(eraserOriginalLayerCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
+    
+    _ctx.save();
+    _ctx.globalCompositeOperation = 'destination-out';
+    _ctx.globalAlpha = eraserStrength / 100;
+    _ctx.drawImage(eraserStrokeCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
+    _ctx.restore();
+}
+
+function drawEraserLine(x0, y0, x1, y1) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const dist = Math.hypot(dx, dy);
+    
+    if (dist === 0) return;
+    
+    const step = 1; 
+    let traveled = 0;
+    let stamped = false;
+    
+    const pad = eraserRadius + 2;
+    let minX = documentWidth;
+    let minY = documentHeight;
+    let maxX = 0;
+    let maxY = 0;
+
+    while (traveled <= dist) {
+        const t = traveled / dist;
+        const stampX = x0 + dx * t;
+        const stampY = y0 + dy * t;
+        
+        eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(stampX) - eraserRadius, Math.round(stampY) - eraserRadius);
+        
+        minX = Math.min(minX, stampX - pad);
+        minY = Math.min(minY, stampY - pad);
+        maxX = Math.max(maxX, stampX + pad);
+        maxY = Math.max(maxY, stampY + pad);
+        
+        traveled += step;
+        stamped = true;
+    }
+    
+    if (stamped) {
+        compositeEraserBoundingBox(minX, minY, maxX, maxY);
+    }
+}
+
+function pickColor(x, y, isRightClick) {
+    const sampleSize = parseInt(eyedropperSampleSizeSelect.value, 10) || 1;
+    const half = Math.floor(sampleSize / 2);
+    
+    const startX = Math.max(0, Math.floor(x) - half);
+    const startY = Math.max(0, Math.floor(y) - half);
+    const endX = Math.min(documentWidth - 1, Math.floor(x) + half);
+    const endY = Math.min(documentHeight - 1, Math.floor(y) + half);
+    
+    const w = endX - startX + 1;
+    const h = endY - startY + 1;
+    
+    if (w <= 0 || h <= 0) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const ctx = tempCanvas.getContext('2d');
+    
+    for (let i = 0; i < layers.length; i++) {
+        const layer = layers[i];
+        if (layer.visible) {
+            ctx.drawImage(layer.canvas, startX, startY, w, h, 0, 0, w, h);
+        }
+    }
+    
+    const imgData = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0;
+    let count = 0;
+    
+    for (let i = 0; i < imgData.length; i += 4) {
+        const alpha = imgData[i+3];
+        if (alpha > 0) {
+            r += imgData[i];
+            g += imgData[i+1];
+            b += imgData[i+2];
+            count++;
+        }
+    }
+    
+    let hex = '#ffffff';
+    if (count > 0) {
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+        hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    if (isRightClick) {
+        bgColor = hex;
+        bgColorInput.value = hex;
+    } else {
+        fgColor = hex;
+        fgColorInput.value = hex;
+        if (typeof updateBrushStamp === 'function') updateBrushStamp();
     }
 }
 
@@ -533,6 +784,35 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         compositeBrushBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
         
         canvasWrapper.setPointerCapture(e.pointerId);
+    } else if (currentTool === 'eraser') {
+        const activeObj = getActiveLayerObj();
+        if (!activeObj || !activeObj.visible) return;
+
+        isDrawing = true;
+        const coords = getCanvasCoords(e);
+        lastX = coords.x;
+        lastY = coords.y;
+        
+        eraserStrokeCanvas.width = documentWidth;
+        eraserStrokeCanvas.height = documentHeight;
+        eraserStrokeCtx.globalCompositeOperation = 'source-over';
+        
+        eraserOriginalLayerCanvas = document.createElement('canvas');
+        eraserOriginalLayerCanvas.width = documentWidth;
+        eraserOriginalLayerCanvas.height = documentHeight;
+        eraserOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
+        
+        eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(lastX) - eraserRadius, Math.round(lastY) - eraserRadius);
+        
+        const pad = eraserRadius + 2;
+        compositeEraserBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
+        
+        canvasWrapper.setPointerCapture(e.pointerId);
+    } else if (currentTool === 'eyedropper') {
+        isDrawing = true;
+        const coords = getCanvasCoords(e);
+        pickColor(coords.x, coords.y, e.button === 2);
+        canvasWrapper.setPointerCapture(e.pointerId);
     }
 });
 
@@ -543,6 +823,10 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         brushCursor.classList.add('active');
         brushCursor.style.left = e.clientX + 'px';
         brushCursor.style.top = e.clientY + 'px';
+    } else if (currentTool === 'eraser') {
+        eraserCursor.classList.add('active');
+        eraserCursor.style.left = e.clientX + 'px';
+        eraserCursor.style.top = e.clientY + 'px';
     }
 
     if (isPanning) {
@@ -674,6 +958,14 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         drawBrushLine(lastX, lastY, coords.x, coords.y);
         lastX = coords.x;
         lastY = coords.y;
+    } else if (currentTool === 'eraser' && isDrawing) {
+        const coords = getCanvasCoords(e);
+        drawEraserLine(lastX, lastY, coords.x, coords.y);
+        lastX = coords.x;
+        lastY = coords.y;
+    } else if (currentTool === 'eyedropper' && isDrawing) {
+        const coords = getCanvasCoords(e);
+        pickColor(coords.x, coords.y, e.buttons === 2);
     }
 });
 
@@ -819,10 +1111,12 @@ canvasWrapper.addEventListener('pointerup', (e) => {
         renderSelectionVisual();
         saveState();
 
-    } else if ((currentTool === 'pencil' || currentTool === 'brush') && isDrawing) {
+    } else if ((currentTool === 'pencil' || currentTool === 'brush' || currentTool === 'eraser' || currentTool === 'eyedropper') && isDrawing) {
         isDrawing = false;
         if (currentTool === 'brush') {
             brushOriginalLayerCanvas = null;
+        } else if (currentTool === 'eraser') {
+            eraserOriginalLayerCanvas = null;
         }
         if (activeLayerId) updateLayerThumbnail(activeLayerId);
         saveState();
@@ -861,6 +1155,8 @@ canvasWrapper.addEventListener('pointercancel', (e) => {
         isDrawing = false;
         if (currentTool === 'brush') {
             brushOriginalLayerCanvas = null;
+        } else if (currentTool === 'eraser') {
+            eraserOriginalLayerCanvas = null;
         }
         if (activeLayerId) updateLayerThumbnail(activeLayerId);
         saveState();
@@ -870,6 +1166,8 @@ canvasWrapper.addEventListener('pointercancel', (e) => {
 canvasWrapper.addEventListener('pointerleave', (e) => {
     if (currentTool === 'brush') {
         brushCursor.classList.remove('active');
+    } else if (currentTool === 'eraser') {
+        eraserCursor.classList.remove('active');
     }
 });
 
@@ -878,6 +1176,10 @@ canvasWrapper.addEventListener('pointerenter', (e) => {
         brushCursor.classList.add('active');
         brushCursor.style.left = e.clientX + 'px';
         brushCursor.style.top = e.clientY + 'px';
+    } else if (currentTool === 'eraser') {
+        eraserCursor.classList.add('active');
+        eraserCursor.style.left = e.clientX + 'px';
+        eraserCursor.style.top = e.clientY + 'px';
     }
 });
 

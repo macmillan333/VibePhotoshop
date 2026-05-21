@@ -134,12 +134,14 @@ let bgColor = '#ffffff';
 const toolMove = document.getElementById('tool-move');
 const toolPencil = document.getElementById('tool-pencil');
 const toolBrush = document.getElementById('tool-brush');
+const toolEraser = document.getElementById('tool-eraser');
 const toolZoom = document.getElementById('tool-zoom');
 const toolRectSelect = document.getElementById('tool-rect-select');
 const toolOvalSelect = document.getElementById('tool-oval-select');
 const toolPolygonSelect = document.getElementById('tool-polygon-select');
 const toolText = document.getElementById('tool-text');
-const toolBtns = [toolMove, toolPencil, toolBrush, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect, toolText];
+const toolEyedropper = document.getElementById('tool-eyedropper');
+const toolBtns = [toolMove, toolPencil, toolBrush, toolEraser, toolZoom, toolRectSelect, toolOvalSelect, toolPolygonSelect, toolText, toolEyedropper];
 
 let currentTool = null;
 let isDrawing = false;
@@ -158,6 +160,16 @@ const brushColorCanvas = document.createElement('canvas');
 const brushColorCtx = brushColorCanvas.getContext('2d');
 let brushOriginalLayerCanvas = null;
 let brushDistSinceLastStamp = 0;
+
+// Eraser Subsystem
+let eraserRadius = 20;
+let eraserHardness = 100;
+let eraserStrength = 100;
+let eraserShape = 'circle';
+let eraserStampCanvas = document.createElement('canvas');
+const eraserStrokeCanvas = document.createElement('canvas');
+const eraserStrokeCtx = eraserStrokeCanvas.getContext('2d');
+let eraserOriginalLayerCanvas = null;
 
 let isTypingText = false;
 let currentText = '';
@@ -218,3 +230,15 @@ const brushStrengthInput = document.getElementById('brush-strength-input');
 const brushSpacingSlider = document.getElementById('brush-spacing-slider');
 const brushSpacingInput = document.getElementById('brush-spacing-input');
 const brushCursor = document.getElementById('brush-cursor');
+
+const eraserToolbar = document.getElementById('eraser-toolbar');
+const eraserRadiusInput = document.getElementById('eraser-radius-input');
+const eraserHardnessSlider = document.getElementById('eraser-hardness-slider');
+const eraserHardnessInput = document.getElementById('eraser-hardness-input');
+const eraserStrengthSlider = document.getElementById('eraser-strength-slider');
+const eraserStrengthInput = document.getElementById('eraser-strength-input');
+const eraserShapeSelect = document.getElementById('eraser-shape-select');
+const eraserCursor = document.getElementById('eraser-cursor');
+
+const eyedropperToolbar = document.getElementById('eyedropper-toolbar');
+const eyedropperSampleSizeSelect = document.getElementById('eyedropper-sample-size');

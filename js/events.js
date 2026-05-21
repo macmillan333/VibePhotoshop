@@ -631,4 +631,29 @@ window.addEventListener('beforeunload', (e) => {
     }
 });
 
-
+// --- Spin Buttons Logic ---
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('spin-btn')) {
+        const targetId = e.target.getAttribute('data-target');
+        const stepStr = e.target.getAttribute('data-step');
+        const step = parseFloat(stepStr);
+        const input = document.getElementById(targetId);
+        
+        if (input) {
+            const currentVal = parseFloat(input.value) || 0;
+            let newVal = currentVal + step;
+            
+            // Respect min/max if they exist
+            if (input.hasAttribute('min')) newVal = Math.max(parseFloat(input.getAttribute('min')), newVal);
+            if (input.hasAttribute('max')) newVal = Math.min(parseFloat(input.getAttribute('max')), newVal);
+            
+            // Fix floating point precision
+            const decimals = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
+            newVal = parseFloat(newVal.toFixed(decimals));
+            
+            input.value = newVal;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+});
