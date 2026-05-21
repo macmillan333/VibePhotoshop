@@ -22,15 +22,34 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
   * Move
   * Pencil
   * Brush
+  * Eraser
+  * Eyedropper (Color Picker)
   * Zoom
   * Selection: rectangle, oval, polygon
   * Text
+  * Tool Options Bar for dynamic properties (brush size, hardness, sample size, text styling)
 * Layers
   * Create
   * Reorder
   * Delete
   * Duplicate
   * Merge
+
+### Planned features
+
+* View menu
+  * Ruler
+  * Guides
+* Select menu
+  * Expand / contract / border / feather
+* Image menu
+  * Hue / saturation / brightness
+  * Curve
+  * Blur
+* Layer effects
+  * Bevel / emboss
+  * Glow
+  * Rasterize
 
 ### Browser Compatibility
 
