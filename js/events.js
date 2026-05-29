@@ -91,21 +91,16 @@ document.addEventListener('keydown', (e) => {
         const activeObj = getActiveLayerObj();
         if (!activeObj || !activeObj.visible) return;
 
-        let hasSelection = false;
-        if (selectionMask) {
-            for (let i = 0; i < selectionMask.length; i++) {
-                if (selectionMask[i] > 0) { hasSelection = true; break; }
-            }
-        }
+        let hasSel = hasSelection();
 
         e.preventDefault();
 
         if (e.altKey && !e.ctrlKey && !e.metaKey) {
-            executeFill(fgColor, activeObj, hasSelection);
+            executeFill(fgColor, activeObj, hasSel);
         } else if ((e.ctrlKey || e.metaKey) && !e.altKey) {
-            executeFill(bgColor, activeObj, hasSelection);
+            executeFill(bgColor, activeObj, hasSel);
         } else if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            executeClear(activeObj, hasSelection);
+            executeClear(activeObj, hasSel);
         }
         return;
     }
@@ -150,17 +145,14 @@ document.addEventListener('keydown', (e) => {
                 return;
             }
 
-            let hasSelection = false;
-            for (let i = 0; i < selectionMask.length; i++) {
-                if (selectionMask[i] > 0) { hasSelection = true; break; }
-            }
+            let hasSel = hasSelection();
 
             clipboardData = document.createElement('canvas');
             clipboardData.width = documentWidth;
             clipboardData.height = documentHeight;
             const clipCtx = clipboardData.getContext('2d');
 
-            if (!hasSelection) {
+            if (!hasSel) {
                 clipCtx.drawImage(activeObj.canvas, 0, 0);
             } else {
                 const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
@@ -186,17 +178,14 @@ document.addEventListener('keydown', (e) => {
                 return;
             }
 
-            let hasSelection = false;
-            for (let i = 0; i < selectionMask.length; i++) {
-                if (selectionMask[i] > 0) { hasSelection = true; break; }
-            }
+            let hasSel = hasSelection();
 
             clipboardData = document.createElement('canvas');
             clipboardData.width = documentWidth;
             clipboardData.height = documentHeight;
             const clipCtx = clipboardData.getContext('2d');
 
-            if (!hasSelection) {
+            if (!hasSel) {
                 clipCtx.drawImage(activeObj.canvas, 0, 0);
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
             } else {
@@ -364,20 +353,8 @@ function executeFlip(flipH, flipV) {
     const activeObj = getActiveLayerObj();
     if (!activeObj || !activeObj.visible) return;
 
-    let minX = documentWidth, minY = documentHeight, maxX = 0, maxY = 0;
-    let hasSel = false;
-
-    for (let y = 0; y < documentHeight; y++) {
-        for (let x = 0; x < documentWidth; x++) {
-            if (selectionMask[y * documentWidth + x] > 0) {
-                hasSel = true;
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-            }
-        }
-    }
+    const bounds = getSelectionBounds();
+    let { hasSelection: hasSel, minX, minY, maxX, maxY } = bounds;
 
     if (!hasSel) {
         minX = 0; minY = 0; maxX = documentWidth - 1; maxY = documentHeight - 1;
@@ -388,51 +365,10 @@ function executeFlip(flipH, flipV) {
     const w = maxX - minX + 1;
     const h = maxY - minY + 1;
 
-    const cropCanvas = document.createElement('canvas');
-    cropCanvas.width = w;
-    cropCanvas.height = h;
-    const cropCtx = cropCanvas.getContext('2d', { willReadFrequently: true });
-    const cropData = cropCtx.createImageData(w, h);
-
-    const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
-
-    const erasedCanvas = document.createElement('canvas');
-    erasedCanvas.width = documentWidth;
-    erasedCanvas.height = documentHeight;
-    const erCtx = erasedCanvas.getContext('2d', { willReadFrequently: true });
-    const erData = erCtx.createImageData(documentWidth, documentHeight);
-
-    for (let y = 0; y < documentHeight; y++) {
-        for (let x = 0; x < documentWidth; x++) {
-            const i = y * documentWidth + x;
-            const px = i * 4;
-            const selVal = hasSel ? selectionMask[i] : 255;
-
-            if (selVal > 0 && x >= minX && x <= maxX && y >= minY && y <= maxY) {
-                const destIdx = ((y - minY) * w + (x - minX)) * 4;
-                cropData.data[destIdx] = srcData.data[px];
-                cropData.data[destIdx + 1] = srcData.data[px + 1];
-                cropData.data[destIdx + 2] = srcData.data[px + 2];
-                const factor = selVal / 255;
-                cropData.data[destIdx + 3] = Math.floor(srcData.data[px + 3] * factor);
-
-                erData.data[px] = srcData.data[px];
-                erData.data[px + 1] = srcData.data[px + 1];
-                erData.data[px + 2] = srcData.data[px + 2];
-                erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - cropData.data[destIdx + 3]);
-            } else {
-                erData.data[px] = srcData.data[px];
-                erData.data[px + 1] = srcData.data[px + 1];
-                erData.data[px + 2] = srcData.data[px + 2];
-                erData.data[px + 3] = srcData.data[px + 3];
-            }
-        }
-    }
-    cropCtx.putImageData(cropData, 0, 0);
-    erCtx.putImageData(erData, 0, 0);
+    const res = extractSelectionRegion(activeObj.ctx, hasSel, minX, minY, maxX, maxY);
 
     activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
-    activeObj.ctx.drawImage(erasedCanvas, 0, 0);
+    activeObj.ctx.drawImage(res.erasedCanvas, 0, 0);
 
     const cx = minX + w / 2;
     const cy = minY + h / 2;
@@ -440,7 +376,7 @@ function executeFlip(flipH, flipV) {
     activeObj.ctx.save();
     activeObj.ctx.translate(cx, cy);
     activeObj.ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-    activeObj.ctx.drawImage(cropCanvas, -w / 2, -h / 2, w, h);
+    activeObj.ctx.drawImage(res.floatingCanvas, -w / 2, -h / 2, w, h);
     activeObj.ctx.restore();
 
     if (hasSel) {
@@ -657,3 +593,33 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// --- Color Picker Events ---
+let _fgColorSavedSelection = null;
+fgColorInput.addEventListener('pointerdown', () => {
+    // Save text selection before the native color picker dialog steals focus
+    if (isTypingText) {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0 && textEditor.contains(sel.anchorNode)) {
+            _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
+        }
+    }
+});
+fgColorInput.addEventListener('input', (e) => {
+    fgColor = e.target.value;
+    if (isTypingText && _fgColorSavedSelection) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(_fgColorSavedSelection);
+        if (!sel.isCollapsed) {
+            document.execCommand('styleWithCSS', false, true);
+            document.execCommand('foreColor', false, fgColor);
+            // Re-save the selection for continued color-picker dragging
+            if (sel.rangeCount > 0) {
+                _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
+            }
+        }
+    }
+    updateBrushStamp();
+});
+bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });

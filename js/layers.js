@@ -436,22 +436,12 @@ ctxDeleteLayer.addEventListener('click', () => {
     const idsToDelete = Array.from(selectedLayerIds);
 
     for (let delId of idsToDelete) {
-        if (layers.length <= 1) break;
-        const layerObj = layers.find(l => l.id === delId);
-        if (layerObj) {
-            layerObj.canvas.remove();
-            layers = layers.filter(l => l.id !== delId);
+        if (deleteLayer(delId)) {
             deleted = true;
         }
     }
 
     if (deleted) {
-        selectedLayerIds.clear();
-        const topId = layers[0].id;
-        selectedLayerIds.add(topId);
-        lastClickedLayerId = topId;
-        setActiveLayer(topId);
-        renderLayersList();
         saveState();
     }
 });

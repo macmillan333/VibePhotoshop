@@ -101,14 +101,13 @@ fontFamilySelect.addEventListener('change', (e) => {
     textEditor.focus();
 });
 
-fontSizeInput.addEventListener('change', (e) => {
-    const val = e.target.value;
+function applyTextStyle(styleProp, value) {
     restoreTextSelection();
     document.execCommand('styleWithCSS', false, true);
     const selection = window.getSelection();
     if (selection.rangeCount > 0 && !selection.isCollapsed) {
         const span = document.createElement('span');
-        span.style.fontSize = val + 'px';
+        span.style[styleProp] = value;
         const range = selection.getRangeAt(0);
         span.appendChild(range.extractContents());
         range.insertNode(span);
@@ -118,40 +117,8 @@ fontSizeInput.addEventListener('change', (e) => {
         selection.addRange(newRange);
     }
     textEditor.focus();
-});
+}
 
-letterSpacingInput.addEventListener('change', (e) => {
-    const val = e.target.value;
-    restoreTextSelection();
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0 && !selection.isCollapsed) {
-        const span = document.createElement('span');
-        span.style.letterSpacing = val + 'px';
-        const range = selection.getRangeAt(0);
-        span.appendChild(range.extractContents());
-        range.insertNode(span);
-        selection.removeAllRanges();
-        const newRange = document.createRange();
-        newRange.selectNodeContents(span);
-        selection.addRange(newRange);
-    }
-    textEditor.focus();
-});
-
-lineHeightInput.addEventListener('change', (e) => {
-    const val = e.target.value;
-    restoreTextSelection();
-    const selection = window.getSelection();
-    if (selection.rangeCount > 0 && !selection.isCollapsed) {
-        const span = document.createElement('span');
-        span.style.lineHeight = val;
-        const range = selection.getRangeAt(0);
-        span.appendChild(range.extractContents());
-        range.insertNode(span);
-        selection.removeAllRanges();
-        const newRange = document.createRange();
-        newRange.selectNodeContents(span);
-        selection.addRange(newRange);
-    }
-    textEditor.focus();
-});
+fontSizeInput.addEventListener('change', (e) => applyTextStyle('fontSize', e.target.value + 'px'));
+letterSpacingInput.addEventListener('change', (e) => applyTextStyle('letterSpacing', e.target.value + 'px'));
+lineHeightInput.addEventListener('change', (e) => applyTextStyle('lineHeight', e.target.value));

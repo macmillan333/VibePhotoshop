@@ -245,57 +245,12 @@ function updateBrushStamp() {
     let g = parseInt(fgColor.slice(3, 5), 16);
     let b = parseInt(fgColor.slice(5, 7), 16);
 
-    if (brushHardness >= 100) {
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 1)`;
-        ctx.beginPath();
-        ctx.arc(brushRadius, brushRadius, brushRadius, 0, Math.PI * 2);
-        ctx.fill();
-    } else {
-        const gradient = ctx.createRadialGradient(brushRadius, brushRadius, 0, brushRadius, brushRadius, brushRadius);
-        const hardStop = brushHardness / 100;
-        
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 1)`);
-        if (hardStop > 0) {
-            gradient.addColorStop(hardStop, `rgba(${r}, ${g}, ${b}, 1)`);
-        }
-        
-        // Use a smoother non-linear tail
-        const numStops = 10;
-        for (let i = 1; i <= numStops; i++) {
-            const t = i / numStops;
-            const pos = hardStop + (1 - hardStop) * t;
-            const ease = Math.pow(1 - t, 1.5); 
-            gradient.addColorStop(pos, `rgba(${r}, ${g}, ${b}, ${ease})`);
-        }
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(brushRadius, brushRadius, brushRadius, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    generateCircleStamp(ctx, brushRadius, brushHardness, r, g, b);
 }
 
 function compositeBrushBoundingBox(minX, minY, maxX, maxY) {
     const activeObj = getActiveLayerObj();
-    if (!activeObj || !activeObj.visible) return;
-    const _ctx = activeObj.ctx;
-
-    minX = Math.max(0, Math.floor(minX));
-    minY = Math.max(0, Math.floor(minY));
-    maxX = Math.min(documentWidth, Math.ceil(maxX));
-    maxY = Math.min(documentHeight, Math.ceil(maxY));
-    const bw = maxX - minX;
-    const bh = maxY - minY;
-    
-    if (bw <= 0 || bh <= 0) return;
-    
-    _ctx.clearRect(minX, minY, bw, bh);
-    _ctx.drawImage(brushOriginalLayerCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
-    
-    _ctx.save();
-    _ctx.globalAlpha = brushStrength / 100;
-    _ctx.drawImage(brushStrokeCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
-    _ctx.restore();
+    compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', minX, minY, maxX, maxY);
 }
 
 function drawBrushLine(x0, y0, x1, y1) {
@@ -375,28 +330,7 @@ function updateEraserStamp() {
         }
         ctx.putImageData(imgData, 0, 0);
     } else {
-        if (eraserHardness >= 100) {
-            ctx.fillStyle = `rgba(255, 255, 255, 1)`;
-            ctx.beginPath();
-            ctx.arc(eraserRadius, eraserRadius, eraserRadius, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            const gradient = ctx.createRadialGradient(eraserRadius, eraserRadius, 0, eraserRadius, eraserRadius, eraserRadius);
-            const hardStop = eraserHardness / 100;
-            gradient.addColorStop(0, `rgba(255, 255, 255, 1)`);
-            if (hardStop > 0) gradient.addColorStop(hardStop, `rgba(255, 255, 255, 1)`);
-            const numStops = 10;
-            for (let i = 1; i <= numStops; i++) {
-                const t = i / numStops;
-                const pos = hardStop + (1 - hardStop) * t;
-                const ease = Math.pow(1 - t, 1.5); 
-                gradient.addColorStop(pos, `rgba(255, 255, 255, ${ease})`);
-            }
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(eraserRadius, eraserRadius, eraserRadius, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        generateCircleStamp(ctx, eraserRadius, eraserHardness, 255, 255, 255);
     }
 }
 
@@ -406,26 +340,7 @@ canvasWrapper.addEventListener('contextmenu', (e) => {
 
 function compositeEraserBoundingBox(minX, minY, maxX, maxY) {
     const activeObj = getActiveLayerObj();
-    if (!activeObj || !activeObj.visible) return;
-    const _ctx = activeObj.ctx;
-
-    minX = Math.max(0, Math.floor(minX));
-    minY = Math.max(0, Math.floor(minY));
-    maxX = Math.min(documentWidth, Math.ceil(maxX));
-    maxY = Math.min(documentHeight, Math.ceil(maxY));
-    const bw = maxX - minX;
-    const bh = maxY - minY;
-    
-    if (bw <= 0 || bh <= 0) return;
-    
-    _ctx.clearRect(minX, minY, bw, bh);
-    _ctx.drawImage(eraserOriginalLayerCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
-    
-    _ctx.save();
-    _ctx.globalCompositeOperation = 'destination-out';
-    _ctx.globalAlpha = eraserStrength / 100;
-    _ctx.drawImage(eraserStrokeCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
-    _ctx.restore();
+    compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', minX, minY, maxX, maxY);
 }
 
 function drawEraserLine(x0, y0, x1, y1) {
@@ -600,56 +515,20 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         moveStartX = coords.x;
         moveStartY = coords.y;
 
-        let hasSel = false;
-        for (let i = 0; i < selectionMask.length; i++) {
-            if (selectionMask[i] > 0) { hasSel = true; break; }
-        }
-        moveHasSelection = hasSel;
+        const bounds = getSelectionBounds();
+        moveHasSelection = bounds.hasSelection;
 
-        if (!hasSel) {
+        if (!bounds.hasSelection) {
             moveOriginalLayerCanvas = document.createElement('canvas');
             moveOriginalLayerCanvas.width = documentWidth;
             moveOriginalLayerCanvas.height = documentHeight;
             moveOriginalLayerCanvas.getContext('2d', { willReadFrequently: true }).drawImage(activeObj.canvas, 0, 0);
         } else {
-            moveFloatingCanvas = document.createElement('canvas');
-            moveFloatingCanvas.width = documentWidth;
-            moveFloatingCanvas.height = documentHeight;
-            const flCtx = moveFloatingCanvas.getContext('2d');
-
-            const srcData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
-            const destData = flCtx.createImageData(documentWidth, documentHeight);
-
-            moveErasedLayerCanvas = document.createElement('canvas');
-            moveErasedLayerCanvas.width = documentWidth;
-            moveErasedLayerCanvas.height = documentHeight;
-            const erCtx = moveErasedLayerCanvas.getContext('2d', { willReadFrequently: true });
-            const erData = erCtx.createImageData(documentWidth, documentHeight);
-
-            for (let i = 0; i < selectionMask.length; i++) {
-                const px = i * 4;
-                const selVal = selectionMask[i];
-                if (selVal > 0) {
-                    destData.data[px] = srcData.data[px];
-                    destData.data[px + 1] = srcData.data[px + 1];
-                    destData.data[px + 2] = srcData.data[px + 2];
-                    const factor = selVal / 255;
-                    destData.data[px + 3] = Math.floor(srcData.data[px + 3] * factor);
-
-                    erData.data[px] = srcData.data[px];
-                    erData.data[px + 1] = srcData.data[px + 1];
-                    erData.data[px + 2] = srcData.data[px + 2];
-                    erData.data[px + 3] = Math.max(0, srcData.data[px + 3] - destData.data[px + 3]);
-                } else {
-                    erData.data[px] = srcData.data[px];
-                    erData.data[px + 1] = srcData.data[px + 1];
-                    erData.data[px + 2] = srcData.data[px + 2];
-                    erData.data[px + 3] = srcData.data[px + 3];
-                }
-            }
-            flCtx.putImageData(destData, 0, 0);
-            erCtx.putImageData(erData, 0, 0);
-
+            const res = extractSelectionRegion(activeObj.ctx, bounds.hasSelection, bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
+            moveFloatingCanvas = res.floatingCanvas;
+            moveErasedLayerCanvas = res.erasedCanvas;
+            moveSelectionMinX = bounds.minX;
+            moveSelectionMinY = bounds.minY;
             moveOriginalSelectionMask = new Uint8Array(selectionMask);
         }
         canvasWrapper.setPointerCapture(e.pointerId);
@@ -673,8 +552,9 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         if (polygonPoints.length > 0) {
             const lastPoint = polygonPoints[polygonPoints.length - 1];
             const dist = Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y);
-            if (window.lastPolygonClickTime && (now - window.lastPolygonClickTime < 300) && dist < 10) {
+            if (lastPolygonClickTime && (now - lastPolygonClickTime < 300) && dist < 10) {
                 commitPolygonSelection();
+                lastPolygonClickTime = 0;
                 return;
             }
         }
@@ -690,6 +570,7 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
             polygonPoints.push({ x: coords.x, y: coords.y });
             renderSelectionVisual();
         }
+        lastPolygonClickTime = now;
     } else if (currentTool === 'text') {
         if (isTypingText) {
             commitTextLayer();
@@ -862,7 +743,7 @@ canvasWrapper.addEventListener('pointermove', (e) => {
             activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
         } else {
             activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
-            activeObj.ctx.drawImage(moveFloatingCanvas, dx, dy);
+            activeObj.ctx.drawImage(moveFloatingCanvas, moveSelectionMinX + dx, moveSelectionMinY + dy);
 
             // Hardware projected overlay tracking visually
             selectionOverlay.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -1003,21 +884,10 @@ canvasWrapper.addEventListener('pointerup', (e) => {
             } else {
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                 activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
-                activeObj.ctx.drawImage(moveFloatingCanvas, dx, dy);
+                activeObj.ctx.drawImage(moveFloatingCanvas, moveSelectionMinX + dx, moveSelectionMinY + dy);
 
                 selectionOverlay.style.transform = `none`;
-                selectionMask.fill(0);
-                for (let y = 0; y < documentHeight; y++) {
-                    for (let x = 0; x < documentWidth; x++) {
-                        const srcX = x - dx;
-                        const srcY = y - dy;
-                        if (srcX >= 0 && srcX < documentWidth && srcY >= 0 && srcY < documentHeight) {
-                            const srcIdx = srcY * documentWidth + srcX;
-                            const dstIdx = y * documentWidth + x;
-                            selectionMask[dstIdx] = moveOriginalSelectionMask[srcIdx];
-                        }
-                    }
-                }
+                shiftSelectionMask(dx, dy);
                 renderSelectionVisual();
             }
             updateLayerThumbnail(activeObj.id);
@@ -1138,7 +1008,7 @@ canvasWrapper.addEventListener('pointercancel', (e) => {
             } else if (moveHasSelection) {
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                 activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
-                activeObj.ctx.drawImage(moveFloatingCanvas, 0, 0);
+                activeObj.ctx.drawImage(moveFloatingCanvas, moveSelectionMinX, moveSelectionMinY);
                 selectionOverlay.style.transform = `none`;
             }
         }

@@ -90,6 +90,7 @@ let selectionMode = 'replace';
 
 let polygonPoints = [];
 let polygonMode = 'replace';
+let lastPolygonClickTime = 0;
 
 let clipboardData = null;
 
@@ -182,36 +183,7 @@ let caretBlinkInterval = null;
 const fgColorInput = document.getElementById('fg-color');
 const bgColorInput = document.getElementById('bg-color');
 
-let _fgColorSavedSelection = null;
-fgColorInput.addEventListener('pointerdown', () => {
-    // Save text selection before the native color picker dialog steals focus
-    if (isTypingText) {
-        const sel = window.getSelection();
-        if (sel.rangeCount > 0 && textEditor.contains(sel.anchorNode)) {
-            _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
-        }
-    }
-});
-fgColorInput.addEventListener('input', (e) => {
-    fgColor = e.target.value;
-    if (isTypingText && _fgColorSavedSelection) {
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(_fgColorSavedSelection);
-        if (!sel.isCollapsed) {
-            document.execCommand('styleWithCSS', false, true);
-            document.execCommand('foreColor', false, fgColor);
-            // Re-save the selection for continued color-picker dragging
-            if (sel.rangeCount > 0) {
-                _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
-            }
-        }
-    }
-    if (typeof updateBrushStamp === 'function') {
-        updateBrushStamp();
-    }
-});
-bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
+
 
 const textEditor = document.getElementById('text-editor');
 const textToolbar = document.getElementById('text-toolbar');
