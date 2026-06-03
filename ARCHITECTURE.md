@@ -10,12 +10,12 @@ The end goal of VibePhotoshop is to implement a robust subset of Photoshop featu
 ## Tech Stack & Conventions
 - **Vanilla Web Technologies:** Built strictly with HTML, CSS, and JavaScript.
 - **Zero Build Step:** Designed to run seamlessly via the `file://` protocol. No dev server, bundler (e.g., Webpack, Vite), or package manager (NPM) is required.
-- **Modular Architecture:** The codebase is split into modular subsystems (e.g., `layers.js`, `tools.js`, `components/*.css`) which are loaded sequentially via `<script defer>` in `index.html`.
+- **Modular Architecture:** The codebase is split into modular subsystems (e.g., `layers.js`, `tools.js`, `brush.js`, `eraser.js`, `viewport.js`, `utils.js`, `components/*.css`) which are loaded sequentially via `<script defer>` in `index.html`.
 
 ## Core Subsystems & State Management
 
 ### 1. Global State (`js/globals.js`)
-All central application state is maintained globally to allow seamless interaction between different modules without complex dependency injection. Key state variables include:
+Pure variable declarations — no event handlers or logic. All central application state is maintained globally to allow seamless interaction between different modules without complex dependency injection. Key state variables include:
 - `layers`: Array of layer objects containing their DOM `<canvas>` elements and 2D contexts.
 - `activeLayerId` / `selectedLayerIds`: State tracking for active and multi-selected layers.
 - `history`: Array of state snapshots for undo/redo functionality.
@@ -27,21 +27,23 @@ All central application state is maintained globally to allow seamless interacti
 - **Hardware Compositing:** Visual compositing is handled natively by the browser engine using CSS `z-index`, avoiding continuous manual redrawing of a master canvas.
 - **DOM Integration:** Layer thumbnails and visibility toggles are synchronized with the DOM list.
 
-### 3. Selection Engine (`js/tools.js`)
+### 3. Selection Engine (`js/tools.js`, `js/utils.js`)
 - **Bitmap Masking:** Selection is driven by a `Uint8Array` (`selectionMask`). Operations like copying, cutting, or transforming use this array as an alpha mask against the active layer.
 - **Shape Tools:** Marquee tools (Rect, Oval) and Path tools (Polygon) rasterize vector paths or shapes onto a temporary canvas, read the resulting alpha map via `getImageData`, and merge the pixel values into the `selectionMask` (supporting Add/Subtract/Replace modes).
 - **Visual Overlays:** Selection marquees (marching ants) and dragged selection previews are rendered to dedicated `selectionOverlay` and `selectionDragOverlay` canvases layered on top of the document.
+- **Shared Helpers (`js/utils.js`):** Common selection operations — `hasSelection()`, `getSelectionBounds()`, `extractSelectionRegion()`, and `shiftSelectionMask()` — are consolidated in `utils.js` and called from `tools.js`, `events.js`, and `transform.js`.
 
 ### 4. History / Undo-Redo (`js/history.js`)
 - **Deep Pixel Snapshots:** The history engine takes deep snapshots of the entire document state.
 - **Memory Storage:** Uses `getImageData` to store raw pixel arrays for every layer upon significant actions. When restoring a state, it clears the canvases and uses `putImageData` to revert.
 - **Cap:** History is currently capped at `MAX_HISTORY` states to prevent browser memory exhaustion.
 
-### 5. Tools & Transform Engine (`js/tools.js`)
-- **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs.
+### 5. Tools & Transform Engine (`js/tools.js`, `js/viewport.js`)
+- **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs. `tools.js` acts as the central dispatcher, delegating to tool-specific handlers in `brush.js`, `eraser.js`, etc.
+- **Viewport (`js/viewport.js`):** Pan/zoom logic (`applyViewport`, `zoomAtPoint`), canvas coordinate translation (`getCanvasCoords`), and tool cursor sizing helpers are in their own module.
 - **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer.
 
-### 6. Text Tool (`js/tools.js`, `css/components/text-toolbar.css`)
+### 6. Text Tool (`js/tools.js`, `js/text-tool.js`, `css/components/text-toolbar.css`)
 - **Layer Type:** Text layers are stored as regular layer objects with `type: 'text'` and extra properties: `textContent` (plain text), `htmlContent` (rich HTML), `textX`, and `textY` (origin coordinates).
 - **Editing Overlay:** When the user clicks on the canvas with the Text tool, a `contenteditable` div (`#text-editor`) is positioned at the click point inside `#canvas-stack`. This allows native browser text editing (cursor, selection, clipboard) while visually overlaying the canvas.
 - **Tool Properties Bar:** A contextual toolbar (`#properties-bar`) appears at the top of the workspace and provides rich formatting controls depending on the active tool. For the Text tool, it allows changing font family (`<select>`), font size, bold/italic/strikethrough (via `document.execCommand`), text alignment, letter spacing, and line height.
@@ -56,13 +58,14 @@ All central application state is maintained globally to allow seamless interacti
 - **File Menu Structure:** "Open" loads `.vps` project files. "Save" writes to the last-used file handle (quick-save via `savedFileHandle`); "Save As" always shows a file picker dialog. "Import Image" loads flat bitmaps (PNG/JPEG/WebP) into a new project. "Export" flattens visible layers and lets the user choose between PNG and JPEG formats.
 - **Dirty Tracking:** `lastSavedHistoryIndex` tracks the history position of the last save. A `beforeunload` listener warns the user if they try to close the page with unsaved changes. Exporting does not count as a save.
 
-### 8. Brush & Eraser Engine (`js/tools.js`)
+### 8. Brush & Eraser Engine (`js/brush.js`, `js/eraser.js`, `js/utils.js`)
 - **Distance-Based Spacing:** To prevent "alpha build-up" (where stamping a soft brush too densely causes it to look hard), the engine mathematically tracks mouse dragging distance and stamps only when the distance exceeds the configured percentage of the brush's diameter (`brushSpacing`, defaults to 25%).
-- **Off-Screen Stamping:** When settings change, a radial gradient matching the user's hardness percentage is generated onto an off-screen `brushStampCanvas` or `eraserStampCanvas`. A quadratic curve is used to simulate a smooth, Photoshop-like airbrush tail. The Eraser tool also supports a 'square' shape brush.
-- **Stroke-Level Opacity:** To ensure that a continuous stroke respects the `brushStrength` or `eraserStrength` limit, stamps are drawn at 100% opacity onto a full-sized stroke canvas. On every mouse move, the engine isolates the active line segment's bounding box and draws it over a pristine snapshot of the layer. For the brush, it uses `source-in` on a color canvas. For the eraser, it uses `destination-out` compositing to seamlessly remove pixels. This creates a mathematically perfect, unified semi-transparent stroke regardless of stroke length or scrub speed.
-- **Dynamic Tool Properties:** Tool options like size, hardness, spacing, and strength are managed in the contextual `#properties-bar` at the top of the workspace.
+- **Off-Screen Stamping:** When settings change, a radial gradient matching the user's hardness percentage is generated onto an off-screen `brushStampCanvas` or `eraserStampCanvas`. The shared helper `generateCircleStamp()` in `utils.js` produces the gradient for both tools; a quadratic curve simulates a smooth, Photoshop-like airbrush tail. The Eraser tool also supports a 'square' shape brush.
+- **Stroke-Level Opacity:** To ensure that a continuous stroke respects the `brushStrength` or `eraserStrength` limit, stamps are drawn at 100% opacity onto a full-sized stroke canvas. On every mouse move, the shared helper `compositeStrokeBoundingBox()` in `utils.js` isolates the active line segment's bounding box and draws it over a pristine snapshot of the layer. For the brush, it uses `source-in` on a color canvas. For the eraser, it uses `destination-out` compositing to seamlessly remove pixels. This creates a mathematically perfect, unified semi-transparent stroke regardless of stroke length or scrub speed.
+- **Dynamic Tool Properties:** Tool options like size, hardness, spacing, and strength are managed in the contextual `#properties-bar` at the top of the workspace. Toolbar event listeners live in their respective files (`brush.js`, `eraser.js`).
 
 ### 9. Eyedropper Tool (`js/tools.js`)
+
 - **Canvas Flattening Sampling:** When sampling colors, the engine iterates through all visible layers from bottom to top and draws them onto a small, temporary $N \times N$ canvas.
 - **Averaging:** It calculates the average RGB values of all non-transparent pixels in this sampled area, enabling Point Sample (1x1), 3x3 Average, or 5x5 Average modes.
 - **Background vs Foreground:** Left-click assigns the sampled color to the foreground, while right-click (without triggering a context menu) assigns it to the background color.

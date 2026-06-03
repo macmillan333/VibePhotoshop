@@ -87,126 +87,7 @@ toolText.addEventListener('click', () => setActiveTool('text'));
 toolEraser.addEventListener('click', () => setActiveTool('eraser'));
 toolEyedropper.addEventListener('click', () => setActiveTool('eyedropper'));
 
-// Brush Toolbar Events
-brushRadiusInput.addEventListener('input', (e) => {
-    brushRadius = parseInt(e.target.value, 10);
-    updateBrushStamp();
-});
-brushHardnessSlider.addEventListener('input', (e) => {
-    brushHardness = parseInt(e.target.value, 10);
-    brushHardnessInput.value = brushHardness;
-    updateBrushStamp();
-});
-brushHardnessInput.addEventListener('input', (e) => {
-    brushHardness = parseInt(e.target.value, 10);
-    brushHardnessSlider.value = brushHardness;
-    updateBrushStamp();
-});
-brushStrengthSlider.addEventListener('input', (e) => {
-    brushStrength = parseInt(e.target.value, 10);
-    brushStrengthInput.value = brushStrength;
-    updateBrushStamp();
-});
-brushStrengthInput.addEventListener('input', (e) => {
-    brushStrength = parseInt(e.target.value, 10);
-    brushStrengthSlider.value = brushStrength;
-    updateBrushStamp();
-});
-brushSpacingSlider.addEventListener('input', (e) => {
-    brushSpacing = parseInt(e.target.value, 10);
-    brushSpacingInput.value = brushSpacing;
-});
-brushSpacingInput.addEventListener('input', (e) => {
-    brushSpacing = parseInt(e.target.value, 10);
-    brushSpacingSlider.value = brushSpacing;
-});
-
-// Eraser Toolbar Events
-eraserRadiusInput.addEventListener('input', (e) => {
-    eraserRadius = parseInt(e.target.value, 10);
-    updateEraserStamp();
-});
-eraserHardnessSlider.addEventListener('input', (e) => {
-    eraserHardness = parseInt(e.target.value, 10);
-    eraserHardnessInput.value = eraserHardness;
-    updateEraserStamp();
-});
-eraserHardnessInput.addEventListener('input', (e) => {
-    eraserHardness = parseInt(e.target.value, 10);
-    eraserHardnessSlider.value = eraserHardness;
-    updateEraserStamp();
-});
-eraserStrengthSlider.addEventListener('input', (e) => {
-    eraserStrength = parseInt(e.target.value, 10);
-    eraserStrengthInput.value = eraserStrength;
-    updateEraserStamp();
-});
-eraserStrengthInput.addEventListener('input', (e) => {
-    eraserStrength = parseInt(e.target.value, 10);
-    eraserStrengthSlider.value = eraserStrength;
-    updateEraserStamp();
-});
-eraserShapeSelect.addEventListener('change', (e) => {
-    eraserShape = e.target.value;
-    if (eraserShape === 'square') {
-        eraserCursor.classList.add('square');
-    } else {
-        eraserCursor.classList.remove('square');
-    }
-    updateEraserStamp();
-});
-
-// --- Viewport Management ---
-function updateBrushCursorSize() {
-    if (brushCursor) {
-        const visualSize = brushRadius * 2 * zoomLevel;
-        brushCursor.style.width = visualSize + 'px';
-        brushCursor.style.height = visualSize + 'px';
-    }
-}
-
-function updateEraserCursorSize() {
-    if (eraserCursor) {
-        const visualSize = eraserRadius * 2 * zoomLevel;
-        eraserCursor.style.width = visualSize + 'px';
-        eraserCursor.style.height = visualSize + 'px';
-    }
-}
-
-function applyViewport() {
-    canvasStack.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
-    updateBrushCursorSize();
-    updateEraserCursorSize();
-}
-
-function zoomAtPoint(clientX, clientY, newZoom) {
-    newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-    if (newZoom === zoomLevel) return;
-
-    const rect = canvasStack.getBoundingClientRect();
-    const offsetX = clientX - rect.left;
-    const offsetY = clientY - rect.top;
-    const unscaledX = offsetX / zoomLevel;
-    const unscaledY = offsetY / zoomLevel;
-
-    panX -= unscaledX * (newZoom - zoomLevel);
-    panY -= unscaledY * (newZoom - zoomLevel);
-
-    zoomLevel = newZoom;
-    applyViewport();
-}
-
-
 // --- Drawing Engine (Bresenham) ---
-function getCanvasCoords(e) {
-    const rect = canvasStack.getBoundingClientRect();
-    const scaleX = documentWidth / rect.width;
-    const scaleY = documentHeight / rect.height;
-    return {
-        x: Math.floor((e.clientX - rect.left) * scaleX),
-        y: Math.floor((e.clientY - rect.top) * scaleY)
-    };
-}
 
 function drawPixelBresenham(x0, y0, x1, y1) {
     const activeObj = getActiveLayerObj();
@@ -229,157 +110,15 @@ function drawPixelBresenham(x0, y0, x1, y1) {
     }
 }
 
-function updateBrushStamp() {
-    const size = brushRadius * 2;
-    brushStampCanvas.width = size;
-    brushStampCanvas.height = size;
-    
-    // Update custom cursor size based on zoom
-    updateBrushCursorSize();
-    
-    const ctx = brushStampCanvas.getContext('2d');
-    ctx.clearRect(0, 0, size, size);
 
-    // Extract r, g, b from hex fgColor
-    let r = parseInt(fgColor.slice(1, 3), 16);
-    let g = parseInt(fgColor.slice(3, 5), 16);
-    let b = parseInt(fgColor.slice(5, 7), 16);
 
-    generateCircleStamp(ctx, brushRadius, brushHardness, r, g, b);
-}
 
-function compositeBrushBoundingBox(minX, minY, maxX, maxY) {
-    const activeObj = getActiveLayerObj();
-    compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', minX, minY, maxX, maxY);
-}
-
-function drawBrushLine(x0, y0, x1, y1) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const dist = Math.hypot(dx, dy);
-    
-    if (dist === 0) return;
-    
-    // Spacing is based on diameter (radius * 2)
-    const step = Math.max(1, brushRadius * 2 * (brushSpacing / 100)); 
-    
-    let traveled = 0;
-    let stamped = false;
-    
-    const pad = brushRadius + 2;
-    let minX = documentWidth;
-    let minY = documentHeight;
-    let maxX = 0;
-    let maxY = 0;
-
-    while (brushDistSinceLastStamp + dist - traveled >= step) {
-        const remainingToNextStamp = step - brushDistSinceLastStamp;
-        traveled += remainingToNextStamp;
-        
-        const t = traveled / dist;
-        const stampX = x0 + dx * t;
-        const stampY = y0 + dy * t;
-        
-        brushStrokeCtx.drawImage(brushStampCanvas, Math.round(stampX) - brushRadius, Math.round(stampY) - brushRadius);
-        
-        minX = Math.min(minX, stampX - pad);
-        minY = Math.min(minY, stampY - pad);
-        maxX = Math.max(maxX, stampX + pad);
-        maxY = Math.max(maxY, stampY + pad);
-        
-        brushDistSinceLastStamp = 0;
-        stamped = true;
-    }
-    
-    brushDistSinceLastStamp += (dist - traveled);
-    
-    if (stamped) {
-        compositeBrushBoundingBox(minX, minY, maxX, maxY);
-    }
-}
-
-function updateEraserStamp() {
-    const size = eraserRadius * 2;
-    eraserStampCanvas.width = size;
-    eraserStampCanvas.height = size;
-    
-    updateEraserCursorSize();
-    
-    const ctx = eraserStampCanvas.getContext('2d');
-    ctx.clearRect(0, 0, size, size);
-
-    if (eraserShape === 'square') {
-        const hardDist = eraserRadius * (eraserHardness / 100);
-        const softDist = eraserRadius - hardDist;
-        const imgData = ctx.createImageData(size, size);
-        for(let y=0; y<size; y++){
-            for(let x=0; x<size; x++){
-                let distToEdge = Math.min(x, size-1-x, y, size-1-y);
-                let alpha = 255;
-                if(distToEdge < softDist && softDist > 0) {
-                    let t = 1 - (distToEdge / softDist);
-                    let ease = Math.pow(1 - t, 1.5);
-                    alpha = Math.floor(ease * 255);
-                }
-                const i = (y*size + x)*4;
-                imgData.data[i] = 255;
-                imgData.data[i+1] = 255;
-                imgData.data[i+2] = 255;
-                imgData.data[i+3] = alpha;
-            }
-        }
-        ctx.putImageData(imgData, 0, 0);
-    } else {
-        generateCircleStamp(ctx, eraserRadius, eraserHardness, 255, 255, 255);
-    }
-}
 
 canvasWrapper.addEventListener('contextmenu', (e) => {
     e.preventDefault();
 });
 
-function compositeEraserBoundingBox(minX, minY, maxX, maxY) {
-    const activeObj = getActiveLayerObj();
-    compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', minX, minY, maxX, maxY);
-}
 
-function drawEraserLine(x0, y0, x1, y1) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const dist = Math.hypot(dx, dy);
-    
-    if (dist === 0) return;
-    
-    const step = 1; 
-    let traveled = 0;
-    let stamped = false;
-    
-    const pad = eraserRadius + 2;
-    let minX = documentWidth;
-    let minY = documentHeight;
-    let maxX = 0;
-    let maxY = 0;
-
-    while (traveled <= dist) {
-        const t = traveled / dist;
-        const stampX = x0 + dx * t;
-        const stampY = y0 + dy * t;
-        
-        eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(stampX) - eraserRadius, Math.round(stampY) - eraserRadius);
-        
-        minX = Math.min(minX, stampX - pad);
-        minY = Math.min(minY, stampY - pad);
-        maxX = Math.max(maxX, stampX + pad);
-        maxY = Math.max(maxY, stampY + pad);
-        
-        traveled += step;
-        stamped = true;
-    }
-    
-    if (stamped) {
-        compositeEraserBoundingBox(minX, minY, maxX, maxY);
-    }
-}
 
 function pickColor(x, y, isRightClick) {
     const sampleSize = parseInt(eyedropperSampleSizeSelect.value, 10) || 1;
@@ -640,55 +379,9 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         drawPixelBresenham(lastX, lastY, coords.x, coords.y);
         canvasWrapper.setPointerCapture(e.pointerId);
     } else if (currentTool === 'brush') {
-        const activeObj = getActiveLayerObj();
-        if (!activeObj || !activeObj.visible) return;
-
-        isDrawing = true;
-        const coords = getCanvasCoords(e);
-        lastX = coords.x;
-        lastY = coords.y;
-        
-        // Initialize brush stroke tracking
-        brushStrokeCanvas.width = documentWidth;
-        brushStrokeCanvas.height = documentHeight;
-        brushStrokeCtx.globalCompositeOperation = 'source-over';
-        
-        brushOriginalLayerCanvas = document.createElement('canvas');
-        brushOriginalLayerCanvas.width = documentWidth;
-        brushOriginalLayerCanvas.height = documentHeight;
-        brushOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
-        
-        brushDistSinceLastStamp = 0;
-        brushStrokeCtx.drawImage(brushStampCanvas, Math.round(lastX) - brushRadius, Math.round(lastY) - brushRadius);
-        
-        const pad = brushRadius + 2;
-        compositeBrushBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
-        
-        canvasWrapper.setPointerCapture(e.pointerId);
+        handleBrushPointerDown(e, getCanvasCoords(e));
     } else if (currentTool === 'eraser') {
-        const activeObj = getActiveLayerObj();
-        if (!activeObj || !activeObj.visible) return;
-
-        isDrawing = true;
-        const coords = getCanvasCoords(e);
-        lastX = coords.x;
-        lastY = coords.y;
-        
-        eraserStrokeCanvas.width = documentWidth;
-        eraserStrokeCanvas.height = documentHeight;
-        eraserStrokeCtx.globalCompositeOperation = 'source-over';
-        
-        eraserOriginalLayerCanvas = document.createElement('canvas');
-        eraserOriginalLayerCanvas.width = documentWidth;
-        eraserOriginalLayerCanvas.height = documentHeight;
-        eraserOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
-        
-        eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(lastX) - eraserRadius, Math.round(lastY) - eraserRadius);
-        
-        const pad = eraserRadius + 2;
-        compositeEraserBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
-        
-        canvasWrapper.setPointerCapture(e.pointerId);
+        handleEraserPointerDown(e, getCanvasCoords(e));
     } else if (currentTool === 'eyedropper') {
         isDrawing = true;
         const coords = getCanvasCoords(e);
@@ -836,14 +529,10 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         lastY = coords.y;
     } else if (currentTool === 'brush' && isDrawing) {
         const coords = getCanvasCoords(e);
-        drawBrushLine(lastX, lastY, coords.x, coords.y);
-        lastX = coords.x;
-        lastY = coords.y;
+        handleBrushPointerMove(e, coords);
     } else if (currentTool === 'eraser' && isDrawing) {
         const coords = getCanvasCoords(e);
-        drawEraserLine(lastX, lastY, coords.x, coords.y);
-        lastX = coords.x;
-        lastY = coords.y;
+        handleEraserPointerMove(e, coords);
     } else if (currentTool === 'eyedropper' && isDrawing) {
         const coords = getCanvasCoords(e);
         pickColor(coords.x, coords.y, e.buttons === 2);
