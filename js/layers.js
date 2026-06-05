@@ -58,6 +58,10 @@ function initDocument(w, h, skipBaseLayer = false) {
     btnFlipH.removeAttribute('disabled');
     btnFlipV.removeAttribute('disabled');
     btnFreeTransform.removeAttribute('disabled');
+    btnExpandSelection.removeAttribute('disabled');
+    btnContractSelection.removeAttribute('disabled');
+    btnBorderSelection.removeAttribute('disabled');
+    btnFeatherSelection.removeAttribute('disabled');
 
     if (!skipBaseLayer) {
         createLayer('Background');

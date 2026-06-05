@@ -27,9 +27,13 @@ Pure variable declarations — no event handlers or logic. All central applicati
 - **Hardware Compositing:** Visual compositing is handled natively by the browser engine using CSS `z-index`, avoiding continuous manual redrawing of a master canvas.
 - **DOM Integration:** Layer thumbnails and visibility toggles are synchronized with the DOM list.
 
-### 3. Selection Engine (`js/tools.js`, `js/utils.js`)
+### 3. Selection Engine (`js/tools.js`, `js/utils.js`, `js/selection.js`)
 - **Bitmap Masking:** Selection is driven by a `Uint8Array` (`selectionMask`). Operations like copying, cutting, or transforming use this array as an alpha mask against the active layer.
 - **Shape Tools:** Marquee tools (Rect, Oval) and Path tools (Polygon) rasterize vector paths or shapes onto a temporary canvas, read the resulting alpha map via `getImageData`, and merge the pixel values into the `selectionMask` (supporting Add/Subtract/Replace modes).
+- **Selection Modifications (`js/selection.js`):** The Select menu offers Euclidean distance-based mathematical operations to modify the active selection:
+  - **Expand/Contract:** Uses radius-based Euclidean distance comparisons against boundary pixels to uniformly grow or shrink the selection area.
+  - **Border:** Hollows out the existing selection to create a uniform stroke along the boundary, implemented via a combined mathematical expansion and contraction.
+  - **Feather:** Simulates a Gaussian blur on the selection mask using a high-performance 3-pass Box Blur algorithm directly on the `Uint8Array`, producing smooth, Photoshop-accurate falloffs.
 - **Visual Overlays:** Selection marquees (marching ants) and dragged selection previews are rendered to dedicated `selectionOverlay` and `selectionDragOverlay` canvases layered on top of the document.
 - **Shared Helpers (`js/utils.js`):** Common selection operations — `hasSelection()`, `getSelectionBounds()`, `extractSelectionRegion()`, and `shiftSelectionMask()` — are consolidated in `utils.js` and called from `tools.js`, `events.js`, and `transform.js`.
 

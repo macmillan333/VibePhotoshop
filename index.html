@@ -56,6 +56,15 @@
                         <button class="dropdown-item" id="btn-free-transform" disabled>Free Transform... (Ctrl+Alt+T)</button>
                     </div>
                 </div>
+                <div class="menu-item" id="menu-select">
+                    <button class="menu-trigger" id="select-menu-btn">Select</button>
+                    <div class="dropdown-menu hidden" id="select-dropdown">
+                        <button class="dropdown-item" id="btn-expand-selection" disabled>Expand...</button>
+                        <button class="dropdown-item" id="btn-contract-selection" disabled>Contract...</button>
+                        <button class="dropdown-item" id="btn-border-selection" disabled>Border...</button>
+                        <button class="dropdown-item" id="btn-feather-selection" disabled>Feather...</button>
+                    </div>
+                </div>
                 <!-- Hidden file inputs -->
                 <input type="file" id="file-input-vps" accept=".vps" hidden>
                 <input type="file" id="file-input-image" accept="image/png, image/jpeg, image/webp" hidden>
@@ -424,6 +433,62 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-canvas-size">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="expand-selection-modal" class="modal">
+        <form method="dialog" id="expand-selection-form">
+            <h2>Expand Selection</h2>
+            <div class="form-group">
+                <label for="expand-pixels">Expand By (px)</label>
+                <input type="number" id="expand-pixels" name="pixels" value="1" min="1" max="1000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-expand-selection">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="contract-selection-modal" class="modal">
+        <form method="dialog" id="contract-selection-form">
+            <h2>Contract Selection</h2>
+            <div class="form-group">
+                <label for="contract-pixels">Contract By (px)</label>
+                <input type="number" id="contract-pixels" name="pixels" value="1" min="1" max="1000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-contract-selection">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="border-selection-modal" class="modal">
+        <form method="dialog" id="border-selection-form">
+            <h2>Border Selection</h2>
+            <div class="form-group">
+                <label for="border-pixels">Width (px)</label>
+                <input type="number" id="border-pixels" name="pixels" value="1" min="1" max="1000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-border-selection">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="feather-selection-modal" class="modal">
+        <form method="dialog" id="feather-selection-form">
+            <h2>Feather Selection</h2>
+            <div class="form-group">
+                <label for="feather-pixels">Radius (px)</label>
+                <input type="number" id="feather-pixels" name="pixels" value="5" min="1" max="1000" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-feather-selection">Cancel</button>
                 <button type="submit" class="btn btn-primary">OK</button>
             </div>
         </form>

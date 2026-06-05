@@ -21,6 +21,13 @@ const btnFlipH = document.getElementById('btn-flip-h');
 const btnFlipV = document.getElementById('btn-flip-v');
 const btnFreeTransform = document.getElementById('btn-free-transform');
 
+const selectMenuBtn = document.getElementById('select-menu-btn');
+const selectDropdown = document.getElementById('select-dropdown');
+const btnExpandSelection = document.getElementById('btn-expand-selection');
+const btnContractSelection = document.getElementById('btn-contract-selection');
+const btnBorderSelection = document.getElementById('btn-border-selection');
+const btnFeatherSelection = document.getElementById('btn-feather-selection');
+
 const layerContextMenu = document.getElementById('layer-context-menu');
 const ctxDuplicateLayer = document.getElementById('ctx-duplicate-layer');
 const ctxRasterizeLayer = document.getElementById('ctx-rasterize-layer');
@@ -42,6 +49,22 @@ const canvasSizeModal = document.getElementById('canvas-size-modal');
 const canvasSizeForm = document.getElementById('canvas-size-form');
 const btnCancelCanvasSize = document.getElementById('btn-cancel-canvas-size');
 const anchorBtns = document.querySelectorAll('.anchor-btn');
+
+const expandSelectionModal = document.getElementById('expand-selection-modal');
+const expandSelectionForm = document.getElementById('expand-selection-form');
+const btnCancelExpandSelection = document.getElementById('btn-cancel-expand-selection');
+
+const contractSelectionModal = document.getElementById('contract-selection-modal');
+const contractSelectionForm = document.getElementById('contract-selection-form');
+const btnCancelContractSelection = document.getElementById('btn-cancel-contract-selection');
+
+const borderSelectionModal = document.getElementById('border-selection-modal');
+const borderSelectionForm = document.getElementById('border-selection-form');
+const btnCancelBorderSelection = document.getElementById('btn-cancel-border-selection');
+
+const featherSelectionModal = document.getElementById('feather-selection-modal');
+const featherSelectionForm = document.getElementById('feather-selection-form');
+const btnCancelFeatherSelection = document.getElementById('btn-cancel-feather-selection');
 
 const canvasWrapper = document.querySelector('.canvas-wrapper');
 const canvasStack = document.getElementById('canvas-stack');

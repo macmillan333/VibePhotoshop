@@ -250,13 +250,22 @@ function toggleMenu(menuBtn, dropdown) {
 fileMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(fileMenuBtn, fileDropdown);
 });
 
 editMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(editMenuBtn, editDropdown);
+});
+
+selectMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    toggleMenu(selectMenuBtn, selectDropdown);
 });
 
 document.addEventListener('click', (e) => {
@@ -268,6 +277,10 @@ document.addEventListener('click', (e) => {
         editDropdown.classList.add('hidden');
         editMenuBtn.classList.remove('active');
     }
+    if (!selectMenuBtn.contains(e.target) && !selectDropdown.contains(e.target)) {
+        selectDropdown.classList.add('hidden');
+        selectMenuBtn.classList.remove('active');
+    }
 });
 
 fileDropdown.addEventListener('click', () => {
@@ -278,6 +291,11 @@ fileDropdown.addEventListener('click', () => {
 editDropdown.addEventListener('click', () => {
     editDropdown.classList.add('hidden');
     editMenuBtn.classList.remove('active');
+});
+
+selectDropdown.addEventListener('click', () => {
+    selectDropdown.classList.add('hidden');
+    selectMenuBtn.classList.remove('active');
 });
 
 // --- Actions ---
@@ -345,6 +363,87 @@ canvasSizeForm.addEventListener('submit', (e) => {
     const anchorStr = activeAnchor ? activeAnchor.dataset.anchor : 'center';
     resizeDocument(w, h, false, anchorStr);
     canvasSizeModal.close();
+});
+
+// Select Menu Action Handlers
+btnExpandSelection.addEventListener('click', () => {
+    if (!hasSelection()) {
+        showToast("No selection to expand.");
+        return;
+    }
+    document.getElementById('expand-pixels').value = 1;
+    expandSelectionModal.showModal();
+});
+
+btnCancelExpandSelection.addEventListener('click', () => expandSelectionModal.close());
+
+expandSelectionForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = parseInt(document.getElementById('expand-pixels').value, 10);
+    expandSelectionModal.close();
+    if (p > 0) {
+        expandSelection(p);
+    }
+});
+
+btnContractSelection.addEventListener('click', () => {
+    if (!hasSelection()) {
+        showToast("No selection to contract.");
+        return;
+    }
+    document.getElementById('contract-pixels').value = 1;
+    contractSelectionModal.showModal();
+});
+
+btnCancelContractSelection.addEventListener('click', () => contractSelectionModal.close());
+
+contractSelectionForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = parseInt(document.getElementById('contract-pixels').value, 10);
+    contractSelectionModal.close();
+    if (p > 0) {
+        contractSelection(p);
+    }
+});
+
+btnBorderSelection.addEventListener('click', () => {
+    if (!hasSelection()) {
+        showToast("No selection to border.");
+        return;
+    }
+    document.getElementById('border-pixels').value = 1;
+    borderSelectionModal.showModal();
+});
+
+btnCancelBorderSelection.addEventListener('click', () => borderSelectionModal.close());
+
+borderSelectionForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = parseInt(document.getElementById('border-pixels').value, 10);
+    borderSelectionModal.close();
+    if (p > 0) {
+        borderSelection(p);
+    }
+});
+
+btnFeatherSelection.addEventListener('click', () => {
+    if (!hasSelection()) {
+        showToast("No selection to feather.");
+        return;
+    }
+    document.getElementById('feather-pixels').value = 5;
+    featherSelectionModal.showModal();
+});
+
+btnCancelFeatherSelection.addEventListener('click', () => featherSelectionModal.close());
+
+featherSelectionForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const p = parseInt(document.getElementById('feather-pixels').value, 10);
+    featherSelectionModal.close();
+    if (p > 0) {
+        featherSelection(p);
+    }
 });
 
 // --- Flip Operations ---
