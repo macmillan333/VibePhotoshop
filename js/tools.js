@@ -178,6 +178,52 @@ function pickColor(x, y, isRightClick) {
     }
 }
 
+function pickColorForRange(x, y) {
+    const startX = Math.max(0, Math.floor(x) - 1);
+    const startY = Math.max(0, Math.floor(y) - 1);
+    const endX = Math.min(documentWidth - 1, Math.floor(x) + 1);
+    const endY = Math.min(documentHeight - 1, Math.floor(y) + 1);
+    
+    const w = endX - startX + 1;
+    const h = endY - startY + 1;
+    
+    if (w <= 0 || h <= 0) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const ctx = tempCanvas.getContext('2d');
+    
+    for (let i = layers.length - 1; i >= 0; i--) {
+        const layer = layers[i];
+        if (layer.visible) {
+            ctx.drawImage(layer.canvas, startX, startY, w, h, 0, 0, w, h);
+        }
+    }
+    
+    const imgData = ctx.getImageData(0, 0, w, h).data;
+    let r = 0, g = 0, b = 0;
+    let count = 0;
+    
+    for (let i = 0; i < imgData.length; i += 4) {
+        const alpha = imgData[i+3];
+        if (alpha > 0) {
+            r += imgData[i];
+            g += imgData[i+1];
+            b += imgData[i+2];
+            count++;
+        }
+    }
+    
+    if (count > 0) {
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+        colorRangeSampledColor = { r, g, b };
+        updateColorRangePreview();
+    }
+}
+
 function commitPolygonSelection() {
     if (polygonPoints.length < 3) {
         polygonPoints = [];
@@ -235,6 +281,14 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         panStartX = e.clientX;
         panStartY = e.clientY;
         canvasStack.classList.add('is-panning');
+        canvasWrapper.setPointerCapture(e.pointerId);
+        return;
+    }
+
+    if (isColorRangeActive) {
+        isDrawing = true;
+        const coords = getCanvasCoords(e);
+        pickColorForRange(coords.x, coords.y);
         canvasWrapper.setPointerCapture(e.pointerId);
         return;
     }
@@ -414,6 +468,12 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         return;
     }
 
+    if (isColorRangeActive && isDrawing) {
+        const coords = getCanvasCoords(e);
+        pickColorForRange(coords.x, coords.y);
+        return;
+    }
+
     if (currentTool === 'zoom' && e.buttons === 1) {
         const dx = e.clientX - zoomStartX;
         if (Math.abs(dx) > 2) {
@@ -547,6 +607,11 @@ canvasWrapper.addEventListener('pointerup', (e) => {
     if (isPanning) {
         isPanning = false;
         canvasStack.classList.remove('is-panning');
+        return;
+    }
+
+    if (isColorRangeActive) {
+        isDrawing = false;
         return;
     }
 

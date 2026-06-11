@@ -66,6 +66,14 @@ const featherSelectionModal = document.getElementById('feather-selection-modal')
 const featherSelectionForm = document.getElementById('feather-selection-form');
 const btnCancelFeatherSelection = document.getElementById('btn-cancel-feather-selection');
 
+const btnColorRangeSelection = document.getElementById('btn-color-range-selection');
+const colorRangeModal = document.getElementById('color-range-modal');
+const colorRangeForm = document.getElementById('color-range-form');
+const colorRangePreviewCanvas = document.getElementById('color-range-preview-canvas');
+const colorRangeFuzziness = document.getElementById('color-range-fuzziness');
+const colorRangeFuzzinessVal = document.getElementById('color-range-fuzziness-val');
+const btnCancelColorRange = document.getElementById('btn-cancel-color-range');
+
 const canvasWrapper = document.querySelector('.canvas-wrapper');
 const canvasStack = document.getElementById('canvas-stack');
 const sidebarRight = document.getElementById('sidebar-right');
@@ -114,6 +122,10 @@ let selectionMode = 'replace';
 let polygonPoints = [];
 let polygonMode = 'replace';
 let lastPolygonClickTime = 0;
+
+let isColorRangeActive = false;
+let colorRangeSampledColor = null; // {r, g, b}
+let colorRangeFuzzinessValue = 40;
 
 let clipboardData = null;
 

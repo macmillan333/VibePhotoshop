@@ -63,6 +63,8 @@
                         <button class="dropdown-item" id="btn-contract-selection" disabled>Contract...</button>
                         <button class="dropdown-item" id="btn-border-selection" disabled>Border...</button>
                         <button class="dropdown-item" id="btn-feather-selection" disabled>Feather...</button>
+                        <hr class="menu-divider">
+                        <button class="dropdown-item" id="btn-color-range-selection" disabled>Color Range...</button>
                     </div>
                 </div>
                 <!-- Hidden file inputs -->
@@ -489,6 +491,24 @@
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-feather-selection">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="color-range-modal" class="modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 100000; box-shadow: 0 0 0 100vmax rgba(0,0,0,0.2);">
+        <form method="dialog" id="color-range-form">
+            <h2>Color Range</h2>
+            <div class="color-range-preview-container" style="text-align: center; margin-bottom: 15px;">
+                <canvas id="color-range-preview-canvas" width="300" height="200" style="background: #000; border: 1px solid var(--border-color); max-width: 100%; object-fit: contain;"></canvas>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <label for="color-range-fuzziness">Fuzziness</label>
+                <input type="range" id="color-range-fuzziness" name="fuzziness" value="40" min="0" max="200" style="flex: 1;">
+                <span id="color-range-fuzziness-val" style="width: 30px; text-align: right;">40</span>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-color-range">Cancel</button>
                 <button type="submit" class="btn btn-primary">OK</button>
             </div>
         </form>

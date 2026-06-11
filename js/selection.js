@@ -303,3 +303,100 @@ function featherSelection(pixels) {
     renderSelectionVisual();
     saveState();
 }
+
+function updateColorRangePreview() {
+    if (!documentCreated || !colorRangeSampledColor) return;
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = documentWidth;
+    tempCanvas.height = documentHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    for (let i = layers.length - 1; i >= 0; i--) {
+        if (layers[i].visible) {
+            tempCtx.drawImage(layers[i].canvas, 0, 0);
+        }
+    }
+    
+    const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+    const data = imgData.data;
+    const { r, g, b } = colorRangeSampledColor;
+    const fuzziness = colorRangeFuzzinessValue;
+    
+    const previewData = tempCtx.createImageData(documentWidth, documentHeight);
+    const pData = previewData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+        const pr = data[i];
+        const pg = data[i+1];
+        const pb = data[i+2];
+        const pa = data[i+3];
+        
+        let selAlpha = 0;
+        if (pa > 0) {
+            const dist = Math.sqrt(Math.pow(pr - r, 2) + Math.pow(pg - g, 2) + Math.pow(pb - b, 2));
+            if (fuzziness === 0) {
+                selAlpha = (dist === 0) ? 255 : 0;
+            } else if (dist <= fuzziness) {
+                selAlpha = Math.round(255 * (1 - (dist / fuzziness)));
+            }
+        }
+        
+        pData[i] = selAlpha;
+        pData[i+1] = selAlpha;
+        pData[i+2] = selAlpha;
+        pData[i+3] = 255;
+    }
+    
+    tempCtx.putImageData(previewData, 0, 0);
+    
+    const previewCtx = colorRangePreviewCanvas.getContext('2d');
+    const scale = Math.min(colorRangePreviewCanvas.width / documentWidth, colorRangePreviewCanvas.height / documentHeight);
+    const scaledW = documentWidth * scale;
+    const scaledH = documentHeight * scale;
+    const dx = (colorRangePreviewCanvas.width - scaledW) / 2;
+    const dy = (colorRangePreviewCanvas.height - scaledH) / 2;
+    
+    previewCtx.fillStyle = '#000';
+    previewCtx.fillRect(0, 0, colorRangePreviewCanvas.width, colorRangePreviewCanvas.height);
+    previewCtx.drawImage(tempCanvas, 0, 0, documentWidth, documentHeight, dx, dy, scaledW, scaledH);
+}
+
+function applyColorRangeSelection() {
+    if (!documentCreated || !colorRangeSampledColor) return;
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = documentWidth;
+    tempCanvas.height = documentHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    for (let i = layers.length - 1; i >= 0; i--) {
+        if (layers[i].visible) {
+            tempCtx.drawImage(layers[i].canvas, 0, 0);
+        }
+    }
+    
+    const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+    const data = imgData.data;
+    const { r, g, b } = colorRangeSampledColor;
+    const fuzziness = colorRangeFuzzinessValue;
+    
+    selectionMask.fill(0);
+    for (let i = 0; i < data.length; i += 4) {
+        const pa = data[i+3];
+        if (pa > 0) {
+            const pr = data[i];
+            const pg = data[i+1];
+            const pb = data[i+2];
+            const dist = Math.sqrt(Math.pow(pr - r, 2) + Math.pow(pg - g, 2) + Math.pow(pb - b, 2));
+            if (fuzziness === 0) {
+                if (dist === 0) selectionMask[i / 4] = 255;
+            } else if (dist <= fuzziness) {
+                selectionMask[i / 4] = Math.round(255 * (1 - (dist / fuzziness)));
+            }
+        }
+    }
+    
+    renderSelectionVisual();
+    saveState();
+}

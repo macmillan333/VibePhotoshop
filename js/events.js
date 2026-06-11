@@ -446,6 +446,40 @@ featherSelectionForm.addEventListener('submit', (e) => {
     }
 });
 
+btnColorRangeSelection.addEventListener('click', () => {
+    isColorRangeActive = true;
+    canvasStack.classList.add('color-range-active');
+    
+    const r = parseInt(fgColor.slice(1, 3), 16) || 0;
+    const g = parseInt(fgColor.slice(3, 5), 16) || 0;
+    const b = parseInt(fgColor.slice(5, 7), 16) || 0;
+    colorRangeSampledColor = { r, g, b };
+    
+    colorRangeFuzzinessValue = parseInt(colorRangeFuzziness.value, 10);
+    updateColorRangePreview();
+    colorRangeModal.show();
+});
+
+btnCancelColorRange.addEventListener('click', () => {
+    isColorRangeActive = false;
+    canvasStack.classList.remove('color-range-active');
+    colorRangeModal.close();
+});
+
+colorRangeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    isColorRangeActive = false;
+    canvasStack.classList.remove('color-range-active');
+    colorRangeModal.close();
+    applyColorRangeSelection();
+});
+
+colorRangeFuzziness.addEventListener('input', (e) => {
+    colorRangeFuzzinessValue = parseInt(e.target.value, 10);
+    colorRangeFuzzinessVal.textContent = colorRangeFuzzinessValue;
+    updateColorRangePreview();
+});
+
 // --- Flip Operations ---
 function executeFlip(flipH, flipV) {
     if (isTransforming) return;

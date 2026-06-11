@@ -119,6 +119,10 @@
     cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0v24M0 12h24" stroke="white" stroke-width="3"/><path d="M12 0v24M0 12h24" stroke="black" stroke-width="1"/><path d="M14 20h8" stroke="white" stroke-width="3"/><path d="M14 20h8" stroke="black" stroke-width="1"/></svg>') 12 12, crosshair;
 }
 
+#canvas-stack.color-range-active {
+    cursor: url('data:image/svg+xml;utf8,<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.35 5.65l-2-2a1 1 0 0 0-1.4 0L13 7.6 10.4 5 9 6.4l1.6 1.6-8 8V20h4l8-8 1.6 1.6L17.6 12l-1.6-1.6 3.95-3.95a1 1 0 0 0 0-1.4z" fill="white" stroke="black" stroke-width="1"/></svg>') 1 23, crosshair !important;
+}
+
 #selection-overlay,
 #selection-drag-overlay {
     position: absolute;

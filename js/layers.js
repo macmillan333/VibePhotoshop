@@ -62,6 +62,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     btnContractSelection.removeAttribute('disabled');
     btnBorderSelection.removeAttribute('disabled');
     btnFeatherSelection.removeAttribute('disabled');
+    btnColorRangeSelection.removeAttribute('disabled');
 
     if (!skipBaseLayer) {
         createLayer('Background');
