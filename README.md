@@ -1,6 +1,8 @@
 # VibePhotoshop - A vibe-coded Photoshop clone
 
-All code is written by the free tier of [Google Antigravity](https://antigravity.google/), using Gemini 3.1 Pro.
+All code is written by the free tier of [Google Antigravity](https://antigravity.google/), using Gemini 3.1 Pro and Claude Opus 4.6.
+
+For changes that create / change UI, I stick with Gemini as much as possible for a consistent look and feel.
 
 https://macmillan333.github.io/VibePhotoshop/
 
@@ -15,6 +17,7 @@ An example prompt:
 ### Features
 
 I only intend to implement a subset of Photoshop features, ones that I regularly use. Currently available features:
+
 * Create, open and save layered project files (.vps format)
 * Import and export flat images (PNG, JPEG, WebP)
 * Undo and redo
@@ -36,13 +39,14 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
   * Merge
 * View
   * Rulers (with cursor tracking)
+* Select menu
+  * Expand / contract / border / feather
+  * Color range
 
 ### Planned features
 
 * View menu
   * Guides
-* Select menu
-  * Expand / contract / border / feather
 * Image menu
   * Hue / saturation / brightness
   * Curve
