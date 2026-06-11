@@ -14,7 +14,7 @@
     /* Darker background for contrast with surface elements */
     overflow: hidden;
     /* Scroll later if we add zoom */
-    padding: 32px;
+    padding: 64px 32px 32px 52px;
 }
 
 /* Canvas Area */
@@ -25,6 +25,60 @@
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* Ruler Canvases */
+.ruler-canvas {
+    position: absolute;
+    z-index: 900;
+    background-color: var(--bg-surface);
+    pointer-events: none;
+}
+
+.ruler-canvas.hidden {
+    display: none;
+}
+
+#ruler-top {
+    top: 44px;
+    left: 0;
+    height: 20px;
+    width: 100%;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#ruler-left {
+    top: 64px;
+    left: 0;
+    width: 20px;
+    height: calc(100% - 64px);
+    border-right: 1px solid var(--border-color);
+}
+
+.ruler-marker {
+    position: absolute;
+    background-color: #fff;
+    pointer-events: none;
+    z-index: 901;
+    mix-blend-mode: difference;
+}
+
+.ruler-marker.hidden {
+    display: none;
+}
+
+#ruler-marker-x {
+    top: 44px;
+    left: 0;
+    height: 20px;
+    width: 1px;
+}
+
+#ruler-marker-y {
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 1px;
 }
 
 /* Canvas Stack Engine */

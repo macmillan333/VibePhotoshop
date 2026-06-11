@@ -34,11 +34,12 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
   * Delete
   * Duplicate
   * Merge
+* View
+  * Rulers (with cursor tracking)
 
 ### Planned features
 
 * View menu
-  * Ruler
   * Guides
 * Select menu
   * Expand / contract / border / feather

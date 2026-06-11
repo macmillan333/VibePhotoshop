@@ -56,6 +56,15 @@
                         <button class="dropdown-item" id="btn-free-transform" disabled>Free Transform... (Ctrl+Alt+T)</button>
                     </div>
                 </div>
+                <div class="menu-item" id="menu-view">
+                    <button class="menu-trigger" id="view-menu-btn">View</button>
+                    <div class="dropdown-menu hidden" id="view-dropdown">
+                        <button class="dropdown-item" id="btn-toggle-rulers" style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" id="rulers-checkmark" style="opacity: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Rulers
+                        </button>
+                    </div>
+                </div>
                 <div class="menu-item" id="menu-select">
                     <button class="menu-trigger" id="select-menu-btn">Select</button>
                     <div class="dropdown-menu hidden" id="select-dropdown">
@@ -157,6 +166,10 @@
             </aside>
 
             <main id="workspace">
+                <canvas id="ruler-top" class="ruler-canvas hidden"></canvas>
+                <canvas id="ruler-left" class="ruler-canvas hidden"></canvas>
+                <div id="ruler-marker-x" class="ruler-marker hidden"></div>
+                <div id="ruler-marker-y" class="ruler-marker hidden"></div>
                 <div id="properties-bar" class="properties-bar">
                     <!-- Text Toolbar -->
                     <div id="text-toolbar" class="tool-properties hidden">

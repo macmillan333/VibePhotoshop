@@ -8,6 +8,29 @@ layersResizer.addEventListener('pointerdown', (e) => {
 });
 
 document.addEventListener('pointermove', (e) => {
+    if (showRulers && documentCreated) {
+        const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+        if (e.clientX >= workspaceRect.left && e.clientX <= workspaceRect.right &&
+            e.clientY >= workspaceRect.top && e.clientY <= workspaceRect.bottom) {
+            
+            const x = e.clientX - workspaceRect.left;
+            const y = e.clientY - workspaceRect.top;
+            
+            rulerMarkerX.style.transform = `translateX(${x}px)`;
+            rulerMarkerY.style.transform = `translateY(${y}px)`;
+            
+            // Only show markers when inside the actual workspace content area (below properties bar, right of left ruler)
+            if (y > 44) rulerMarkerX.classList.remove('hidden');
+            else rulerMarkerX.classList.add('hidden');
+            
+            if (x > 20) rulerMarkerY.classList.remove('hidden');
+            else rulerMarkerY.classList.add('hidden');
+        } else {
+            rulerMarkerX.classList.add('hidden');
+            rulerMarkerY.classList.add('hidden');
+        }
+    }
+
     if (isResizingPanel) {
         let newWidth = sidebarRight.getBoundingClientRect().right - e.clientX;
         newWidth = Math.max(200, Math.min(600, newWidth));
@@ -250,6 +273,7 @@ function toggleMenu(menuBtn, dropdown) {
 fileMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(fileMenuBtn, fileDropdown);
 });
@@ -257,14 +281,24 @@ fileMenuBtn.addEventListener('click', (e) => {
 editMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(editMenuBtn, editDropdown);
+});
+
+viewMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
+    toggleMenu(viewMenuBtn, viewDropdown);
 });
 
 selectMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     toggleMenu(selectMenuBtn, selectDropdown);
 });
 
@@ -276,6 +310,10 @@ document.addEventListener('click', (e) => {
     if (!editMenuBtn.contains(e.target) && !editDropdown.contains(e.target)) {
         editDropdown.classList.add('hidden');
         editMenuBtn.classList.remove('active');
+    }
+    if (!viewMenuBtn.contains(e.target) && !viewDropdown.contains(e.target)) {
+        viewDropdown.classList.add('hidden');
+        viewMenuBtn.classList.remove('active');
     }
     if (!selectMenuBtn.contains(e.target) && !selectDropdown.contains(e.target)) {
         selectDropdown.classList.add('hidden');
@@ -291,6 +329,11 @@ fileDropdown.addEventListener('click', () => {
 editDropdown.addEventListener('click', () => {
     editDropdown.classList.add('hidden');
     editMenuBtn.classList.remove('active');
+});
+
+viewDropdown.addEventListener('click', (e) => {
+    // Let buttons inside handle closing if needed, to avoid closing when clicking toggle
+    // We will let the specific button handler close the dropdown
 });
 
 selectDropdown.addEventListener('click', () => {
@@ -363,6 +406,32 @@ canvasSizeForm.addEventListener('submit', (e) => {
     const anchorStr = activeAnchor ? activeAnchor.dataset.anchor : 'center';
     resizeDocument(w, h, false, anchorStr);
     canvasSizeModal.close();
+});
+
+// View Menu Action Handlers
+btnToggleRulers.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showRulers = !showRulers;
+    if (showRulers) {
+        rulersCheckmark.style.opacity = '1';
+        rulerTopCanvas.classList.remove('hidden');
+        rulerLeftCanvas.classList.remove('hidden');
+        if (typeof drawRulers === 'function') drawRulers();
+    } else {
+        rulersCheckmark.style.opacity = '0';
+        rulerTopCanvas.classList.add('hidden');
+        rulerLeftCanvas.classList.add('hidden');
+        rulerMarkerX.classList.add('hidden');
+        rulerMarkerY.classList.add('hidden');
+    }
+    viewDropdown.classList.add('hidden');
+    viewMenuBtn.classList.remove('active');
+});
+
+window.addEventListener('resize', () => {
+    if (showRulers && typeof drawRulers === 'function') {
+        drawRulers();
+    }
 });
 
 // Select Menu Action Handlers

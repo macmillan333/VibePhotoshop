@@ -45,7 +45,7 @@ Pure variable declarations — no event handlers or logic. All central applicati
 
 ### 5. Tools & Transform Engine (`js/tools.js`, `js/viewport.js`)
 - **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs. `tools.js` acts as the central dispatcher, delegating to tool-specific handlers in `brush.js`, `eraser.js`, etc.
-- **Viewport (`js/viewport.js`):** Pan/zoom logic (`applyViewport`, `zoomAtPoint`), canvas coordinate translation (`getCanvasCoords`), and tool cursor sizing helpers are in their own module.
+- **Viewport & Rulers (`js/viewport.js`):** Pan/zoom logic (`applyViewport`, `zoomAtPoint`) and canvas coordinate translation (`getCanvasCoords`) are encapsulated here. The viewport also dynamically renders top and left UI Rulers that scale tick intervals based on zoom level. 1px CSS div markers driven by global `pointermove` events live-track the user's cursor across the rulers.
 - **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer.
 
 ### 6. Text Tool (`js/tools.js`, `js/text-tool.js`, `css/components/text-toolbar.css`)

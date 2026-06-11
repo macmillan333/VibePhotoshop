@@ -21,6 +21,11 @@ const btnFlipH = document.getElementById('btn-flip-h');
 const btnFlipV = document.getElementById('btn-flip-v');
 const btnFreeTransform = document.getElementById('btn-free-transform');
 
+const viewMenuBtn = document.getElementById('view-menu-btn');
+const viewDropdown = document.getElementById('view-dropdown');
+const btnToggleRulers = document.getElementById('btn-toggle-rulers');
+const rulersCheckmark = document.getElementById('rulers-checkmark');
+
 const selectMenuBtn = document.getElementById('select-menu-btn');
 const selectDropdown = document.getElementById('select-dropdown');
 const btnExpandSelection = document.getElementById('btn-expand-selection');
@@ -76,6 +81,10 @@ const btnCancelColorRange = document.getElementById('btn-cancel-color-range');
 
 const canvasWrapper = document.querySelector('.canvas-wrapper');
 const canvasStack = document.getElementById('canvas-stack');
+const rulerTopCanvas = document.getElementById('ruler-top');
+const rulerLeftCanvas = document.getElementById('ruler-left');
+const rulerMarkerX = document.getElementById('ruler-marker-x');
+const rulerMarkerY = document.getElementById('ruler-marker-y');
 const sidebarRight = document.getElementById('sidebar-right');
 const layersList = document.getElementById('layers-list');
 const btnAddLayer = document.getElementById('btn-add-layer');
@@ -97,6 +106,8 @@ const MAX_ZOOM = 32.0;
 let zoomLevel = 1.0;
 let panX = 0;
 let panY = 0;
+
+let showRulers = false;
 
 let isPanning = false;
 let panStartX = 0;
