@@ -59,10 +59,11 @@
                 <div class="menu-item" id="menu-view">
                     <button class="menu-trigger" id="view-menu-btn">View</button>
                     <div class="dropdown-menu hidden" id="view-dropdown">
-                        <button class="dropdown-item" id="btn-toggle-rulers" style="display: flex; align-items: center; gap: 8px;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" id="rulers-checkmark" style="opacity: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <button class="dropdown-item" id="btn-toggle-rulers">
+                            <svg class="check-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" id="rulers-checkmark" style="opacity: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             Rulers
                         </button>
+                        <button class="dropdown-item" id="btn-guides" disabled>Guides...</button>
                     </div>
                 </div>
                 <div class="menu-item" id="menu-select">
@@ -331,6 +332,7 @@
                 <div class="canvas-wrapper">
                     <div id="canvas-stack">
                         <!-- Layer canvases injected dynamically here -->
+                        <svg id="guides-svg" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 99999;"></svg>
                         <div id="transform-box" class="hidden">
                             <canvas id="transform-content"></canvas>
                             <div class="rotation-zone"></div>
@@ -448,6 +450,64 @@
 
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-canvas-size">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="guides-modal" class="modal" style="width: 480px; max-width: 90vw;">
+        <form method="dialog" id="guides-form">
+            <h2>Create Guides</h2>
+            
+            <div style="display: flex; gap: 24px; margin-top: 16px; margin-bottom: 8px;">
+                <div style="flex: 1;">
+                    <h3 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Horizontal Guides</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-h-mode" value="none" checked> None
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-h-mode" value="pixels"> Position (Pixels)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-h-mode" value="percent"> Position (Percent)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-h-mode" value="evenly-spaced"> Evenly Spaced
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="guide-h-value">Value(s)</label>
+                        <input type="text" id="guide-h-value" placeholder="e.g. 10, 50, 100" disabled>
+                    </div>
+                </div>
+
+                <div style="flex: 1;">
+                    <h3 style="margin-bottom: 12px; font-size: 14px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Vertical Guides</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-v-mode" value="none" checked> None
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-v-mode" value="pixels"> Position (Pixels)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-v-mode" value="percent"> Position (Percent)
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                            <input type="radio" name="guide-v-mode" value="evenly-spaced"> Evenly Spaced
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="guide-v-value">Value(s)</label>
+                        <input type="text" id="guide-v-value" placeholder="e.g. 10, 50, 100" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px;">Existing guides will be replaced. Use commas for multiple values.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-guides">Cancel</button>
                 <button type="submit" class="btn btn-primary">OK</button>
             </div>
         </form>

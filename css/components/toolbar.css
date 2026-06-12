@@ -73,16 +73,25 @@
 }
 
 .dropdown-item {
+    position: relative;
     background: transparent;
     border: none;
     color: var(--text-primary);
     font-family: var(--font-family);
     font-size: 13px;
     text-align: left;
-    padding: 8px 12px;
+    padding: 8px 12px 8px 32px;
     border-radius: 4px;
     cursor: pointer;
     transition: background-color var(--transition);
+}
+
+.dropdown-item .check-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: opacity 0.15s ease;
 }
 
 .dropdown-item:hover:not(:disabled) {

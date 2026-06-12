@@ -23,6 +23,35 @@ function applyViewport() {
     if (typeof drawRulers === 'function') drawRulers();
 }
 
+function drawGuides() {
+    if (!guidesSvg) return;
+    
+    guidesSvg.innerHTML = '';
+    
+    for (const y of documentGuides.horizontal) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', '0');
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', documentWidth);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#00ffff');
+        line.setAttribute('vector-effect', 'non-scaling-stroke');
+        line.setAttribute('shape-rendering', 'crispEdges');
+        guidesSvg.appendChild(line);
+    }
+    for (const x of documentGuides.vertical) {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x);
+        line.setAttribute('y1', '0');
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', documentHeight);
+        line.setAttribute('stroke', '#00ffff');
+        line.setAttribute('vector-effect', 'non-scaling-stroke');
+        line.setAttribute('shape-rendering', 'crispEdges');
+        guidesSvg.appendChild(line);
+    }
+}
+
 function zoomAtPoint(clientX, clientY, newZoom) {
     newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
     if (newZoom === zoomLevel) return;
@@ -41,14 +70,60 @@ function zoomAtPoint(clientX, clientY, newZoom) {
 }
 
 // --- Coordinate Translation ---
-function getCanvasCoords(e) {
+function snapCoords(coords, e) {
+    if (e.ctrlKey || e.metaKey || !documentGuides) return coords;
+    
+    if (!['pencil', 'brush', 'eraser', 'rect-select', 'oval-select', 'polygon-select'].includes(currentTool)) return coords;
+    
+    const snapThreshold = 10 / zoomLevel;
+    let snappedX = coords.x;
+    let snappedY = coords.y;
+    
+    for (const y of documentGuides.horizontal) {
+        if (Math.abs(coords.y - y) < snapThreshold) {
+            snappedY = y;
+            break;
+        }
+    }
+    for (const x of documentGuides.vertical) {
+        if (Math.abs(coords.x - x) < snapThreshold) {
+            snappedX = x;
+            break;
+        }
+    }
+    
+    return { x: snappedX, y: snappedY };
+}
+
+function getCanvasCoords(e, snap = true) {
     const rect = canvasStack.getBoundingClientRect();
     const scaleX = documentWidth / rect.width;
     const scaleY = documentHeight / rect.height;
-    return {
-        x: Math.floor((e.clientX - rect.left) * scaleX),
-        y: Math.floor((e.clientY - rect.top) * scaleY)
+    let coords = {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
     };
+    if (snap) {
+        coords = snapCoords(coords, e);
+    }
+    return {
+        x: Math.floor(coords.x),
+        y: Math.floor(coords.y)
+    };
+}
+
+function getExactCanvasCoords(e, snap = true) {
+    const rect = canvasStack.getBoundingClientRect();
+    const scaleX = documentWidth / rect.width;
+    const scaleY = documentHeight / rect.height;
+    let coords = {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+    if (snap) {
+        coords = snapCoords(coords, e);
+    }
+    return coords;
 }
 
 function drawRulers() {

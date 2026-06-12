@@ -76,6 +76,13 @@ function setActiveTool(toolId) {
     }
 }
 
+function restoreToolCursor() {
+    if (currentTool === 'brush' || currentTool === 'eraser') canvasWrapper.style.cursor = 'none';
+    else if (currentTool === 'text') canvasWrapper.style.cursor = 'text';
+    else if (currentTool === 'eyedropper') canvasWrapper.style.cursor = 'crosshair';
+    else canvasWrapper.style.cursor = '';
+}
+
 toolMove.addEventListener('click', () => setActiveTool('move'));
 toolPencil.addEventListener('click', () => setActiveTool('pencil'));
 toolBrush.addEventListener('click', () => setActiveTool('brush'));
@@ -276,6 +283,42 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
         return;
     }
 
+    // Guide dragging — check before tool handling
+    if (e.button === 0 && !e.altKey && documentGuides && currentTool === 'move') {
+        const coords = getExactCanvasCoords(e, false);
+        const hitThreshold = 10 / zoomLevel; // 10 screen pixels
+        let bestDist = hitThreshold;
+        let bestType = null;
+        let bestIndex = -1;
+
+        for (let i = 0; i < documentGuides.horizontal.length; i++) {
+            const dist = Math.abs(coords.y - documentGuides.horizontal[i]);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestType = 'horizontal';
+                bestIndex = i;
+            }
+        }
+        for (let i = 0; i < documentGuides.vertical.length; i++) {
+            const dist = Math.abs(coords.x - documentGuides.vertical[i]);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestType = 'vertical';
+                bestIndex = i;
+            }
+        }
+
+        if (bestType !== null) {
+            isDraggingGuide = true;
+            dragGuideType = bestType;
+            dragGuideIndex = bestIndex;
+            canvasWrapper.setPointerCapture(e.pointerId);
+            canvasWrapper.style.cursor = bestType === 'horizontal' ? 'ns-resize' : 'ew-resize';
+            e.preventDefault();
+            return;
+        }
+    }
+
     if (e.button === 1 || (e.button === 0 && e.altKey && currentTool !== 'zoom' && currentTool !== 'pencil' && currentTool !== 'brush' && currentTool !== 'rect-select' && currentTool !== 'oval-select' && currentTool !== 'polygon-select' && currentTool !== 'text')) {
         isPanning = true;
         panStartX = e.clientX;
@@ -447,14 +490,23 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
 canvasWrapper.addEventListener('pointermove', (e) => {
     if (!documentCreated) return;
 
-    if (currentTool === 'brush') {
-        brushCursor.classList.add('active');
-        brushCursor.style.left = e.clientX + 'px';
-        brushCursor.style.top = e.clientY + 'px';
-    } else if (currentTool === 'eraser') {
-        eraserCursor.classList.add('active');
-        eraserCursor.style.left = e.clientX + 'px';
-        eraserCursor.style.top = e.clientY + 'px';
+    if (currentTool === 'brush' || currentTool === 'eraser') {
+        const cursorCanvasCoords = getExactCanvasCoords(e, true);
+        const rect = canvasStack.getBoundingClientRect();
+        const scaleX = documentWidth / rect.width;
+        const scaleY = documentHeight / rect.height;
+        const snappedClientX = rect.left + cursorCanvasCoords.x / scaleX;
+        const snappedClientY = rect.top + cursorCanvasCoords.y / scaleY;
+
+        if (currentTool === 'brush') {
+            brushCursor.classList.add('active');
+            brushCursor.style.left = snappedClientX + 'px';
+            brushCursor.style.top = snappedClientY + 'px';
+        } else {
+            eraserCursor.classList.add('active');
+            eraserCursor.style.left = snappedClientX + 'px';
+            eraserCursor.style.top = snappedClientY + 'px';
+        }
     }
 
     if (isPanning) {
@@ -466,6 +518,39 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         panStartX = e.clientX;
         panStartY = e.clientY;
         return;
+    }
+
+    if (isDraggingGuide) {
+        const coords = getExactCanvasCoords(e, false);
+        if (dragGuideType === 'horizontal') {
+            documentGuides.horizontal[dragGuideIndex] = Math.round(coords.y);
+        } else {
+            documentGuides.vertical[dragGuideIndex] = Math.round(coords.x);
+        }
+        drawGuides();
+        return;
+    }
+
+    // Guide hover detection
+    if (currentTool === 'move' && !isPanning && !isDrawing && !isMoving && !isSelecting && !isZoomDragging && documentGuides && (documentGuides.horizontal.length > 0 || documentGuides.vertical.length > 0)) {
+        const coords = getExactCanvasCoords(e, false);
+        const hitThreshold = 10 / zoomLevel;
+        let hoveredCursor = null;
+
+        for (let y of documentGuides.horizontal) {
+            if (Math.abs(coords.y - y) < hitThreshold) { hoveredCursor = 'ns-resize'; break; }
+        }
+        if (!hoveredCursor) {
+            for (let x of documentGuides.vertical) {
+                if (Math.abs(coords.x - x) < hitThreshold) { hoveredCursor = 'ew-resize'; break; }
+            }
+        }
+
+        if (hoveredCursor) {
+            canvasWrapper.style.cursor = hoveredCursor;
+        } else {
+            restoreToolCursor();
+        }
     }
 
     if (isColorRangeActive && isDrawing) {
@@ -607,6 +692,29 @@ canvasWrapper.addEventListener('pointerup', (e) => {
     if (isPanning) {
         isPanning = false;
         canvasStack.classList.remove('is-panning');
+        return;
+    }
+
+    if (isDraggingGuide) {
+        // Check if the guide was dragged outside the canvas-stack viewport bounds
+        const rect = canvasStack.getBoundingClientRect();
+        const outside = e.clientX < rect.left || e.clientX > rect.right ||
+                        e.clientY < rect.top || e.clientY > rect.bottom;
+        if (outside) {
+            documentGuides[dragGuideType].splice(dragGuideIndex, 1);
+        } else {
+            const coords = getExactCanvasCoords(e, false);
+            if (dragGuideType === 'horizontal') {
+                documentGuides.horizontal[dragGuideIndex] = Math.round(coords.y);
+            } else {
+                documentGuides.vertical[dragGuideIndex] = Math.round(coords.x);
+            }
+        }
+        isDraggingGuide = false;
+        dragGuideType = null;
+        dragGuideIndex = -1;
+        restoreToolCursor();
+        drawGuides();
         return;
     }
 

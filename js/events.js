@@ -409,6 +409,80 @@ canvasSizeForm.addEventListener('submit', (e) => {
 });
 
 // View Menu Action Handlers
+btnGuides.addEventListener('click', () => {
+    guidesModal.showModal();
+});
+
+btnCancelGuides.addEventListener('click', () => {
+    guidesModal.close();
+});
+
+guidesForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    documentGuides = { horizontal: [], vertical: [] };
+    
+    function parseGuides(mode, valueStr, size) {
+        let guidesList = [];
+        if (mode === 'none' || !valueStr.trim()) return guidesList;
+        
+        if (mode === 'evenly-spaced') {
+            const count = Math.max(1, parseInt(valueStr) || 0);
+            if (count > 0) {
+                const step = size / (count + 1);
+                for (let i = 1; i <= count; i++) {
+                    guidesList.push(Math.round(step * i));
+                }
+            }
+        } else {
+            const parts = valueStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+            for (let val of parts) {
+                if (mode === 'percent') {
+                    const p = Math.max(0, Math.min(100, val)) / 100;
+                    guidesList.push(Math.round(size * p));
+                } else { // pixels
+                    guidesList.push(Math.round(val));
+                }
+            }
+        }
+        return guidesList;
+    }
+
+    const hMode = document.querySelector('input[name="guide-h-mode"]:checked').value;
+    const vMode = document.querySelector('input[name="guide-v-mode"]:checked').value;
+
+    documentGuides.horizontal = parseGuides(hMode, guideHValue.value, documentHeight);
+    documentGuides.vertical = parseGuides(vMode, guideVValue.value, documentWidth);
+    
+    drawGuides();
+    guidesModal.close();
+});
+
+function updateGuideInputState(modeName, valueInput) {
+    const mode = document.querySelector(`input[name="${modeName}"]:checked`).value;
+    if (mode === 'none') {
+        valueInput.disabled = true;
+        valueInput.value = '';
+    } else {
+        valueInput.disabled = false;
+        if (mode === 'evenly-spaced') {
+            valueInput.type = 'number';
+            valueInput.min = '1';
+            valueInput.placeholder = 'e.g. 4';
+        } else {
+            valueInput.type = 'text';
+            valueInput.removeAttribute('min');
+            valueInput.placeholder = 'e.g. 10, 50, 100';
+        }
+    }
+}
+
+document.querySelectorAll('input[name="guide-h-mode"]').forEach(r => {
+    r.addEventListener('change', () => updateGuideInputState('guide-h-mode', guideHValue));
+});
+document.querySelectorAll('input[name="guide-v-mode"]').forEach(r => {
+    r.addEventListener('change', () => updateGuideInputState('guide-v-mode', guideVValue));
+});
+
 btnToggleRulers.addEventListener('click', (e) => {
     e.stopPropagation();
     showRulers = !showRulers;

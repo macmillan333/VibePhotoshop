@@ -25,6 +25,7 @@ const viewMenuBtn = document.getElementById('view-menu-btn');
 const viewDropdown = document.getElementById('view-dropdown');
 const btnToggleRulers = document.getElementById('btn-toggle-rulers');
 const rulersCheckmark = document.getElementById('rulers-checkmark');
+const btnGuides = document.getElementById('btn-guides');
 
 const selectMenuBtn = document.getElementById('select-menu-btn');
 const selectDropdown = document.getElementById('select-dropdown');
@@ -54,6 +55,17 @@ const canvasSizeModal = document.getElementById('canvas-size-modal');
 const canvasSizeForm = document.getElementById('canvas-size-form');
 const btnCancelCanvasSize = document.getElementById('btn-cancel-canvas-size');
 const anchorBtns = document.querySelectorAll('.anchor-btn');
+
+const guidesModal = document.getElementById('guides-modal');
+const guidesForm = document.getElementById('guides-form');
+const btnCancelGuides = document.getElementById('btn-cancel-guides');
+const guideHValue = document.getElementById('guide-h-value');
+const guideVValue = document.getElementById('guide-v-value');
+const guidesSvg = document.getElementById('guides-svg');
+let documentGuides = { horizontal: [], vertical: [] };
+let isDraggingGuide = false;
+let dragGuideType = null; // 'horizontal' or 'vertical'
+let dragGuideIndex = -1;
 
 const expandSelectionModal = document.getElementById('expand-selection-modal');
 const expandSelectionForm = document.getElementById('expand-selection-form');

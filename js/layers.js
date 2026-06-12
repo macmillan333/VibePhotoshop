@@ -13,6 +13,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     lastClickedLayerId = null;
     history = [];
     historyIndex = -1;
+    documentGuides = { horizontal: [], vertical: [] };
 
     // Reset Viewport
     zoomLevel = 1.0;
@@ -37,7 +38,13 @@ function initDocument(w, h, skipBaseLayer = false) {
     selectionDragOverlay.height = documentHeight;
     selectionDragCtx = selectionDragOverlay.getContext('2d');
     canvasStack.appendChild(selectionDragOverlay);
+    
+    guidesSvg.setAttribute('viewBox', `0 0 ${documentWidth} ${documentHeight}`);
+    canvasStack.appendChild(guidesSvg);
+    
     canvasStack.appendChild(transformBox);
+    
+    drawGuides();
 
     canvasStack.classList.add('active');
     canvasStack.style.width = `${w}px`;
@@ -58,6 +65,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     btnFlipH.removeAttribute('disabled');
     btnFlipV.removeAttribute('disabled');
     btnFreeTransform.removeAttribute('disabled');
+    btnGuides.removeAttribute('disabled');
     btnExpandSelection.removeAttribute('disabled');
     btnContractSelection.removeAttribute('disabled');
     btnBorderSelection.removeAttribute('disabled');
