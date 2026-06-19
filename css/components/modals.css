@@ -14,6 +14,11 @@
     backdrop-filter: blur(4px);
 }
 
+#blur-modal::backdrop {
+    background: transparent;
+    backdrop-filter: none;
+}
+
 .modal h2 {
     font-size: 18px;
     font-weight: 600;

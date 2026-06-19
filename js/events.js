@@ -273,6 +273,7 @@ function toggleMenu(menuBtn, dropdown) {
 fileMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!imageDropdown.classList.contains('hidden')) toggleMenu(imageMenuBtn, imageDropdown);
     if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(fileMenuBtn, fileDropdown);
@@ -281,15 +282,26 @@ fileMenuBtn.addEventListener('click', (e) => {
 editMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!imageDropdown.classList.contains('hidden')) toggleMenu(imageMenuBtn, imageDropdown);
     if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(editMenuBtn, editDropdown);
+});
+
+imageMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
+    if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
+    if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
+    toggleMenu(imageMenuBtn, imageDropdown);
 });
 
 viewMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!imageDropdown.classList.contains('hidden')) toggleMenu(imageMenuBtn, imageDropdown);
     if (!selectDropdown.classList.contains('hidden')) toggleMenu(selectMenuBtn, selectDropdown);
     toggleMenu(viewMenuBtn, viewDropdown);
 });
@@ -298,6 +310,7 @@ selectMenuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!fileDropdown.classList.contains('hidden')) toggleMenu(fileMenuBtn, fileDropdown);
     if (!editDropdown.classList.contains('hidden')) toggleMenu(editMenuBtn, editDropdown);
+    if (!imageDropdown.classList.contains('hidden')) toggleMenu(imageMenuBtn, imageDropdown);
     if (!viewDropdown.classList.contains('hidden')) toggleMenu(viewMenuBtn, viewDropdown);
     toggleMenu(selectMenuBtn, selectDropdown);
 });
@@ -310,6 +323,10 @@ document.addEventListener('click', (e) => {
     if (!editMenuBtn.contains(e.target) && !editDropdown.contains(e.target)) {
         editDropdown.classList.add('hidden');
         editMenuBtn.classList.remove('active');
+    }
+    if (!imageMenuBtn.contains(e.target) && !imageDropdown.contains(e.target)) {
+        imageDropdown.classList.add('hidden');
+        imageMenuBtn.classList.remove('active');
     }
     if (!viewMenuBtn.contains(e.target) && !viewDropdown.contains(e.target)) {
         viewDropdown.classList.add('hidden');
@@ -329,6 +346,11 @@ fileDropdown.addEventListener('click', () => {
 editDropdown.addEventListener('click', () => {
     editDropdown.classList.add('hidden');
     editMenuBtn.classList.remove('active');
+});
+
+imageDropdown.addEventListener('click', () => {
+    imageDropdown.classList.add('hidden');
+    imageMenuBtn.classList.remove('active');
 });
 
 viewDropdown.addEventListener('click', (e) => {
@@ -406,6 +428,58 @@ canvasSizeForm.addEventListener('submit', (e) => {
     const anchorStr = activeAnchor ? activeAnchor.dataset.anchor : 'center';
     resizeDocument(w, h, false, anchorStr);
     canvasSizeModal.close();
+});
+
+// Image Menu Action Handlers
+btnBlur.addEventListener('click', () => {
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) {
+        showToast("Please select a visible layer to blur.");
+        return;
+    }
+    
+    isBlurActive = true;
+    blurOriginalLayerData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+    
+    blurRadiusSlider.value = 5;
+    blurRadiusInput.value = 5;
+    
+    applyGaussianBlurPreview(5);
+    blurModal.showModal();
+});
+
+btnCancelBlur.addEventListener('click', () => {
+    isBlurActive = false;
+    const activeObj = getActiveLayerObj();
+    if (activeObj && blurOriginalLayerData) {
+        activeObj.ctx.putImageData(blurOriginalLayerData, 0, 0);
+        updateLayerThumbnail(activeObj.id);
+    }
+    blurOriginalLayerData = null;
+    blurModal.close();
+});
+
+blurForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    isBlurActive = false;
+    blurOriginalLayerData = null;
+    saveState();
+    blurModal.close();
+});
+
+blurRadiusSlider.addEventListener('input', (e) => {
+    blurRadiusInput.value = e.target.value;
+});
+
+blurRadiusSlider.addEventListener('change', (e) => {
+    applyGaussianBlurPreview(Number(e.target.value));
+});
+
+blurRadiusInput.addEventListener('input', (e) => {
+    let val = Number(e.target.value);
+    if (val < 0) val = 0;
+    blurRadiusSlider.value = val;
+    applyGaussianBlurPreview(val);
 });
 
 // View Menu Action Handlers

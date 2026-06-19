@@ -65,6 +65,7 @@ function initDocument(w, h, skipBaseLayer = false) {
     btnFlipH.removeAttribute('disabled');
     btnFlipV.removeAttribute('disabled');
     btnFreeTransform.removeAttribute('disabled');
+    btnBlur.removeAttribute('disabled');
     btnGuides.removeAttribute('disabled');
     btnExpandSelection.removeAttribute('disabled');
     btnContractSelection.removeAttribute('disabled');

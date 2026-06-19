@@ -56,6 +56,12 @@
                         <button class="dropdown-item" id="btn-free-transform" disabled>Free Transform... (Ctrl+Alt+T)</button>
                     </div>
                 </div>
+                <div class="menu-item" id="menu-image">
+                    <button class="menu-trigger" id="image-menu-btn">Image</button>
+                    <div class="dropdown-menu hidden" id="image-dropdown">
+                        <button class="dropdown-item" id="btn-blur" disabled>Blur...</button>
+                    </div>
+                </div>
                 <div class="menu-item" id="menu-view">
                     <button class="menu-trigger" id="view-menu-btn">View</button>
                     <div class="dropdown-menu hidden" id="view-dropdown">
@@ -569,6 +575,21 @@
         </form>
     </dialog>
 
+    <dialog id="blur-modal" class="modal">
+        <form method="dialog" id="blur-form">
+            <h2>Gaussian Blur</h2>
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px;">
+                <label for="blur-radius-slider" style="margin: 0;">Radius (px)</label>
+                <input type="range" id="blur-radius-slider" name="radius-slider" value="5" min="0" max="100" style="flex: 1;">
+                <input type="number" id="blur-radius-input" name="radius-input" value="5" min="0" max="1000" style="width: 60px;">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-blur">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog id="color-range-modal" class="modal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; z-index: 100000; box-shadow: 0 0 0 100vmax rgba(0,0,0,0.2);">
         <form method="dialog" id="color-range-form">
             <h2>Color Range</h2>
@@ -608,6 +629,7 @@
     <script defer src="js/tools.js"></script>
     <script defer src="js/text-tool.js"></script>
     <script defer src="js/transform.js"></script>
+    <script defer src="js/filters.js"></script>
     <script defer src="js/fileformat.js"></script>
     <script defer src="js/events.js"></script>
 </body>

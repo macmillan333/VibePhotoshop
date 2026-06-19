@@ -75,6 +75,12 @@ Pure variable declarations — no event handlers or logic. All central applicati
 - **Averaging:** It calculates the average RGB values of all non-transparent pixels in this sampled area, enabling Point Sample (1x1), 3x3 Average, or 5x5 Average modes.
 - **Background vs Foreground:** Left-click assigns the sampled color to the foreground, while right-click (without triggering a context menu) assigns it to the background color.
 
+### 10. Filters Engine (`js/filters.js`)
+- **Real-Time Previews**: Filtering features like Gaussian Blur (`applyGaussianBlurPreview`) operate destructively on a temporary buffer while saving the original canvas data in `blurOriginalLayerData`. This non-destructive preview is rendered directly to the active canvas and can be restored if the user cancels the operation.
+- **Algorithm & Performance**: Gaussian blur is simulated using a 3-pass 1D Box Blur algorithm on `Float32Array` channels, providing $O(1)$ performance independent of the blur radius. Out-of-bounds pixel accesses are clamped to repeat edge pixels, avoiding dark borders.
+- **Alpha Correction**: Colors are properly pre-multiplied by their alpha channel before the blur pass and un-premultiplied afterward, preventing "dirty gray" artifacts in transparent areas.
+- **Selection Integration**: Filters respect the `selectionMask`, using the mask's alpha channel to linearly composite the blurred result over the original, supporting soft/feathered selection borders.
+
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.
 - **Rely on Globals:** When adding new tools or features, utilize the existing global state in `globals.js` rather than creating isolated state management.

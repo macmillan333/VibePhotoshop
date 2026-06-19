@@ -21,6 +21,10 @@ const btnFlipH = document.getElementById('btn-flip-h');
 const btnFlipV = document.getElementById('btn-flip-v');
 const btnFreeTransform = document.getElementById('btn-free-transform');
 
+const imageMenuBtn = document.getElementById('image-menu-btn');
+const imageDropdown = document.getElementById('image-dropdown');
+const btnBlur = document.getElementById('btn-blur');
+
 const viewMenuBtn = document.getElementById('view-menu-btn');
 const viewDropdown = document.getElementById('view-dropdown');
 const btnToggleRulers = document.getElementById('btn-toggle-rulers');
@@ -82,6 +86,12 @@ const btnCancelBorderSelection = document.getElementById('btn-cancel-border-sele
 const featherSelectionModal = document.getElementById('feather-selection-modal');
 const featherSelectionForm = document.getElementById('feather-selection-form');
 const btnCancelFeatherSelection = document.getElementById('btn-cancel-feather-selection');
+
+const blurModal = document.getElementById('blur-modal');
+const blurForm = document.getElementById('blur-form');
+const btnCancelBlur = document.getElementById('btn-cancel-blur');
+const blurRadiusSlider = document.getElementById('blur-radius-slider');
+const blurRadiusInput = document.getElementById('blur-radius-input');
 
 const btnColorRangeSelection = document.getElementById('btn-color-range-selection');
 const colorRangeModal = document.getElementById('color-range-modal');
@@ -149,6 +159,9 @@ let lastPolygonClickTime = 0;
 let isColorRangeActive = false;
 let colorRangeSampledColor = null; // {r, g, b}
 let colorRangeFuzzinessValue = 40;
+
+let isBlurActive = false;
+let blurOriginalLayerData = null;
 
 let clipboardData = null;
 
