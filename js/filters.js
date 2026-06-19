@@ -112,3 +112,127 @@ function applyGaussianBlurPreview(radius) {
     activeObj.ctx.putImageData(destData, 0, 0);
     updateLayerThumbnail(activeObj.id);
 }
+
+// --- Hue/Saturation/Lightness ---
+
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return [h * 360, s, l];
+}
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    h /= 360;
+
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+function applyHSLPreview(hueOffset, satOffset, lightOffset) {
+    if (!documentCreated || !hslOriginalLayerData) return;
+    
+    const activeObj = getActiveLayerObj();
+    if (!activeObj) return;
+
+    if (hueOffset === 0 && satOffset === 0 && lightOffset === 0) {
+        activeObj.ctx.putImageData(hslOriginalLayerData, 0, 0);
+        updateLayerThumbnail(activeObj.id);
+        return;
+    }
+
+    const w = documentWidth;
+    const h = documentHeight;
+    const len = w * h;
+    
+    const srcData = hslOriginalLayerData.data;
+    const destData = activeObj.ctx.createImageData(w, h);
+    const dest = destData.data;
+    const hasSel = hasSelection();
+    
+    const sFactor = satOffset / 100;
+    const lFactor = lightOffset / 100;
+    
+    for (let i = 0; i < len; i++) {
+        const px = i * 4;
+        const a = srcData[px + 3];
+        
+        if (a === 0) {
+            dest[px] = 0; dest[px + 1] = 0; dest[px + 2] = 0; dest[px + 3] = 0;
+            continue;
+        }
+
+        const alphaFactor = a / 255;
+        const origR = srcData[px] / alphaFactor;
+        const origG = srcData[px + 1] / alphaFactor;
+        const origB = srcData[px + 2] / alphaFactor;
+        
+        let [hh, ss, ll] = rgbToHsl(origR, origG, origB);
+        
+        hh = (hh + hueOffset) % 360;
+        if (hh < 0) hh += 360;
+        
+        if (origR !== origG || origG !== origB) {
+            ss = Math.max(0, Math.min(1, ss + sFactor));
+        } else {
+            ss = 0; // Keep greys achromatic unless colorizing (not implemented)
+        }
+        
+        ll = Math.max(0, Math.min(1, ll + lFactor));
+        
+        let [newR, newG, newB] = hslToRgb(hh, ss, ll);
+        
+        newR = Math.max(0, Math.min(255, Math.round(newR * alphaFactor)));
+        newG = Math.max(0, Math.min(255, Math.round(newG * alphaFactor)));
+        newB = Math.max(0, Math.min(255, Math.round(newB * alphaFactor)));
+
+        if (hasSel) {
+            const maskVal = selectionMask[i] / 255;
+            dest[px] = Math.round(srcData[px] * (1 - maskVal) + newR * maskVal);
+            dest[px + 1] = Math.round(srcData[px + 1] * (1 - maskVal) + newG * maskVal);
+            dest[px + 2] = Math.round(srcData[px + 2] * (1 - maskVal) + newB * maskVal);
+            dest[px + 3] = srcData[px + 3];
+        } else {
+            dest[px] = newR;
+            dest[px + 1] = newG;
+            dest[px + 2] = newB;
+            dest[px + 3] = a;
+        }
+    }
+    
+    activeObj.ctx.putImageData(destData, 0, 0);
+    updateLayerThumbnail(activeObj.id);
+}

@@ -76,10 +76,11 @@ Pure variable declarations — no event handlers or logic. All central applicati
 - **Background vs Foreground:** Left-click assigns the sampled color to the foreground, while right-click (without triggering a context menu) assigns it to the background color.
 
 ### 10. Filters Engine (`js/filters.js`)
-- **Real-Time Previews**: Filtering features like Gaussian Blur (`applyGaussianBlurPreview`) operate destructively on a temporary buffer while saving the original canvas data in `blurOriginalLayerData`. This non-destructive preview is rendered directly to the active canvas and can be restored if the user cancels the operation.
-- **Algorithm & Performance**: Gaussian blur is simulated using a 3-pass 1D Box Blur algorithm on `Float32Array` channels, providing $O(1)$ performance independent of the blur radius. Out-of-bounds pixel accesses are clamped to repeat edge pixels, avoiding dark borders.
-- **Alpha Correction**: Colors are properly pre-multiplied by their alpha channel before the blur pass and un-premultiplied afterward, preventing "dirty gray" artifacts in transparent areas.
-- **Selection Integration**: Filters respect the `selectionMask`, using the mask's alpha channel to linearly composite the blurred result over the original, supporting soft/feathered selection borders.
+- **Real-Time Previews**: Filtering features like Gaussian Blur (`applyGaussianBlurPreview`) and Hue/Saturation/Lightness (`applyHSLPreview`) operate non-destructively for previews by reading from a cached pristine snapshot (`blurOriginalLayerData`, `hslOriginalLayerData`). These live previews are rendered directly to the active canvas, correctly respecting alpha compositing and active selection masks, and can be instantly reverted if the user cancels.
+- **Gaussian Blur Algorithm**: Simulated using a 3-pass 1D Box Blur algorithm on `Float32Array` channels, providing $O(1)$ performance independent of the blur radius. Out-of-bounds pixel accesses are clamped to repeat edge pixels, avoiding dark borders.
+- **Color Adjustments (HSL)**: Hue/Saturation/Lightness operates by transforming each non-transparent pixel from RGB to HSL color space (`rgbToHsl`), applying linear numeric offsets to the components (while carefully handling edge cases like achromatic greys preventing artificial saturation injection), and converting back to RGB (`hslToRgb`).
+- **Alpha Correction**: For spatial filters like blur, colors are properly pre-multiplied by their alpha channel before the pass and un-premultiplied afterward, preventing "dirty gray" artifacts in transparent areas. HSL similarly un-premultiplies alpha before color conversion to prevent transparent black fringes from distorting hue calculations.
+- **Selection Integration**: All filters natively respect the global `selectionMask`, using the mask's alpha channel to linearly composite the modified pixel over the original, supporting Photoshop-accurate soft/feathered selection borders.
 
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.

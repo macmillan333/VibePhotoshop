@@ -60,6 +60,7 @@
                     <button class="menu-trigger" id="image-menu-btn">Image</button>
                     <div class="dropdown-menu hidden" id="image-dropdown">
                         <button class="dropdown-item" id="btn-blur" disabled>Blur...</button>
+                        <button class="dropdown-item" id="btn-hsl" disabled>Hue/Saturation/Lightness...</button>
                     </div>
                 </div>
                 <div class="menu-item" id="menu-view">
@@ -585,6 +586,31 @@
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-blur">Cancel</button>
+                <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="hsl-modal" class="modal">
+        <form method="dialog" id="hsl-form">
+            <h2>Hue/Saturation/Lightness</h2>
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
+                <label for="hsl-hue-slider" style="margin: 0; width: 80px;">Hue</label>
+                <input type="range" id="hsl-hue-slider" name="hue-slider" value="0" min="-180" max="180" style="flex: 1;">
+                <input type="number" id="hsl-hue-input" name="hue-input" value="0" min="-180" max="180" style="width: 80px;">
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
+                <label for="hsl-sat-slider" style="margin: 0; width: 80px;">Saturation</label>
+                <input type="range" id="hsl-sat-slider" name="sat-slider" value="0" min="-100" max="100" style="flex: 1;">
+                <input type="number" id="hsl-sat-input" name="sat-input" value="0" min="-100" max="100" style="width: 80px;">
+            </div>
+            <div class="form-group" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px;">
+                <label for="hsl-light-slider" style="margin: 0; width: 80px;">Lightness</label>
+                <input type="range" id="hsl-light-slider" name="light-slider" value="0" min="-100" max="100" style="flex: 1;">
+                <input type="number" id="hsl-light-input" name="light-input" value="0" min="-100" max="100" style="width: 80px;">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-hsl">Cancel</button>
                 <button type="submit" class="btn btn-primary">OK</button>
             </div>
         </form>

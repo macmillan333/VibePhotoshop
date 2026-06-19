@@ -24,6 +24,7 @@ const btnFreeTransform = document.getElementById('btn-free-transform');
 const imageMenuBtn = document.getElementById('image-menu-btn');
 const imageDropdown = document.getElementById('image-dropdown');
 const btnBlur = document.getElementById('btn-blur');
+const btnHsl = document.getElementById('btn-hsl');
 
 const viewMenuBtn = document.getElementById('view-menu-btn');
 const viewDropdown = document.getElementById('view-dropdown');
@@ -92,6 +93,16 @@ const blurForm = document.getElementById('blur-form');
 const btnCancelBlur = document.getElementById('btn-cancel-blur');
 const blurRadiusSlider = document.getElementById('blur-radius-slider');
 const blurRadiusInput = document.getElementById('blur-radius-input');
+
+const hslModal = document.getElementById('hsl-modal');
+const hslForm = document.getElementById('hsl-form');
+const btnCancelHsl = document.getElementById('btn-cancel-hsl');
+const hslHueSlider = document.getElementById('hsl-hue-slider');
+const hslHueInput = document.getElementById('hsl-hue-input');
+const hslSatSlider = document.getElementById('hsl-sat-slider');
+const hslSatInput = document.getElementById('hsl-sat-input');
+const hslLightSlider = document.getElementById('hsl-light-slider');
+const hslLightInput = document.getElementById('hsl-light-input');
 
 const btnColorRangeSelection = document.getElementById('btn-color-range-selection');
 const colorRangeModal = document.getElementById('color-range-modal');
@@ -162,6 +173,9 @@ let colorRangeFuzzinessValue = 40;
 
 let isBlurActive = false;
 let blurOriginalLayerData = null;
+
+let isHslActive = false;
+let hslOriginalLayerData = null;
 
 let clipboardData = null;
 

@@ -482,6 +482,89 @@ blurRadiusInput.addEventListener('input', (e) => {
     applyGaussianBlurPreview(val);
 });
 
+btnHsl.addEventListener('click', () => {
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) {
+        showToast("Please select a visible layer to adjust.");
+        return;
+    }
+    
+    isHslActive = true;
+    hslOriginalLayerData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
+    
+    hslHueSlider.value = 0;
+    hslHueInput.value = 0;
+    hslSatSlider.value = 0;
+    hslSatInput.value = 0;
+    hslLightSlider.value = 0;
+    hslLightInput.value = 0;
+    
+    applyHSLPreview(0, 0, 0);
+    hslModal.showModal();
+});
+
+btnCancelHsl.addEventListener('click', () => {
+    isHslActive = false;
+    const activeObj = getActiveLayerObj();
+    if (activeObj && hslOriginalLayerData) {
+        activeObj.ctx.putImageData(hslOriginalLayerData, 0, 0);
+        updateLayerThumbnail(activeObj.id);
+    }
+    hslOriginalLayerData = null;
+    hslModal.close();
+});
+
+hslForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    isHslActive = false;
+    hslOriginalLayerData = null;
+    saveState();
+    hslModal.close();
+});
+
+function handleHslChange() {
+    const hue = Number(hslHueInput.value);
+    const sat = Number(hslSatInput.value);
+    const light = Number(hslLightInput.value);
+    applyHSLPreview(hue, sat, light);
+}
+
+hslHueSlider.addEventListener('input', (e) => {
+    hslHueInput.value = e.target.value;
+});
+hslHueSlider.addEventListener('change', handleHslChange);
+hslHueInput.addEventListener('input', (e) => {
+    let val = Number(e.target.value);
+    if (val < -180) val = -180;
+    if (val > 180) val = 180;
+    hslHueSlider.value = val;
+    handleHslChange();
+});
+
+hslSatSlider.addEventListener('input', (e) => {
+    hslSatInput.value = e.target.value;
+});
+hslSatSlider.addEventListener('change', handleHslChange);
+hslSatInput.addEventListener('input', (e) => {
+    let val = Number(e.target.value);
+    if (val < -100) val = -100;
+    if (val > 100) val = 100;
+    hslSatSlider.value = val;
+    handleHslChange();
+});
+
+hslLightSlider.addEventListener('input', (e) => {
+    hslLightInput.value = e.target.value;
+});
+hslLightSlider.addEventListener('change', handleHslChange);
+hslLightInput.addEventListener('input', (e) => {
+    let val = Number(e.target.value);
+    if (val < -100) val = -100;
+    if (val > 100) val = 100;
+    hslLightSlider.value = val;
+    handleHslChange();
+});
+
 // View Menu Action Handlers
 btnGuides.addEventListener('click', () => {
     guidesModal.showModal();

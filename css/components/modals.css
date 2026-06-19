@@ -14,7 +14,7 @@
     backdrop-filter: blur(4px);
 }
 
-#blur-modal::backdrop {
+#blur-modal::backdrop, #hsl-modal::backdrop {
     background: transparent;
     backdrop-filter: none;
 }
