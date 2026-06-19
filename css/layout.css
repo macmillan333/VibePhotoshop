@@ -32,7 +32,7 @@
     position: absolute;
     z-index: 900;
     background-color: var(--bg-surface);
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 .ruler-canvas.hidden {
@@ -45,6 +45,7 @@
     height: 20px;
     width: 100%;
     border-bottom: 1px solid var(--border-color);
+    cursor: ns-resize;
 }
 
 #ruler-left {
@@ -53,6 +54,7 @@
     width: 20px;
     height: calc(100% - 64px);
     border-right: 1px solid var(--border-color);
+    cursor: ew-resize;
 }
 
 .ruler-marker {

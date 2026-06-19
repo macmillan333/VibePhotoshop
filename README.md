@@ -39,18 +39,18 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
   * Merge
 * View
   * Rulers (with cursor tracking)
+  * Guides
 * Select menu
   * Expand / contract / border / feather
   * Color range
+* Image menu
+  * Hue / saturation / brightness
+  * Blur
 
 ### Planned features
 
-* View menu
-  * Guides
 * Image menu
-  * Hue / saturation / brightness
   * Curve
-  * Blur
 * Layer effects
   * Bevel / emboss
   * Glow

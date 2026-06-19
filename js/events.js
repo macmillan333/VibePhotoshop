@@ -1056,3 +1056,62 @@ fgColorInput.addEventListener('input', (e) => {
     updateBrushStamp();
 });
 bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
+
+// --- Ruler Drag (Create Guide) ---
+function handleRulerPointerMove(e) {
+    if (!isDraggingGuide) return;
+    const coords = getExactCanvasCoords(e, false);
+    if (dragGuideType === 'horizontal') {
+        documentGuides.horizontal[dragGuideIndex] = Math.round(coords.y);
+    } else {
+        documentGuides.vertical[dragGuideIndex] = Math.round(coords.x);
+    }
+    drawGuides();
+}
+
+function handleRulerPointerUp(e) {
+    if (!isDraggingGuide) return;
+    try { e.target.releasePointerCapture(e.pointerId); } catch (err) { }
+    const rect = canvasStack.getBoundingClientRect();
+    const outside = e.clientX < rect.left || e.clientX > rect.right ||
+                    e.clientY < rect.top || e.clientY > rect.bottom;
+    if (outside) {
+        documentGuides[dragGuideType].splice(dragGuideIndex, 1);
+    } else {
+        const coords = getExactCanvasCoords(e, false);
+        if (dragGuideType === 'horizontal') {
+            documentGuides.horizontal[dragGuideIndex] = Math.round(coords.y);
+        } else {
+            documentGuides.vertical[dragGuideIndex] = Math.round(coords.x);
+        }
+    }
+    isDraggingGuide = false;
+    dragGuideType = null;
+    dragGuideIndex = -1;
+    restoreToolCursor();
+    drawGuides();
+}
+
+rulerTopCanvas.addEventListener('pointerdown', (e) => {
+    if (!documentCreated || e.button !== 0) return;
+    const coords = getExactCanvasCoords(e, false);
+    documentGuides.horizontal.push(Math.round(coords.y));
+    isDraggingGuide = true;
+    dragGuideType = 'horizontal';
+    dragGuideIndex = documentGuides.horizontal.length - 1;
+    rulerTopCanvas.setPointerCapture(e.pointerId);
+});
+rulerTopCanvas.addEventListener('pointermove', handleRulerPointerMove);
+rulerTopCanvas.addEventListener('pointerup', handleRulerPointerUp);
+
+rulerLeftCanvas.addEventListener('pointerdown', (e) => {
+    if (!documentCreated || e.button !== 0) return;
+    const coords = getExactCanvasCoords(e, false);
+    documentGuides.vertical.push(Math.round(coords.x));
+    isDraggingGuide = true;
+    dragGuideType = 'vertical';
+    dragGuideIndex = documentGuides.vertical.length - 1;
+    rulerLeftCanvas.setPointerCapture(e.pointerId);
+});
+rulerLeftCanvas.addEventListener('pointermove', handleRulerPointerMove);
+rulerLeftCanvas.addEventListener('pointerup', handleRulerPointerUp);
