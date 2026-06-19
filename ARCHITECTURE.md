@@ -10,7 +10,7 @@ The end goal of VibePhotoshop is to implement a robust subset of Photoshop featu
 ## Tech Stack & Conventions
 - **Vanilla Web Technologies:** Built strictly with HTML, CSS, and JavaScript.
 - **Zero Build Step:** Designed to run seamlessly via the `file://` protocol. No dev server, bundler (e.g., Webpack, Vite), or package manager (NPM) is required.
-- **Modular Architecture:** The codebase is split into modular subsystems (e.g., `layers.js`, `tools.js`, `brush.js`, `eraser.js`, `viewport.js`, `utils.js`, `components/*.css`) which are loaded sequentially via `<script defer>` in `index.html`.
+- **Modular Architecture:** The codebase is split into modular subsystems (e.g., `layers.js`, `tools.js`, `brush.js`, `eraser.js`, `viewport.js`, `utils.js`, `modal-drag.js`, `components/*.css`) which are loaded sequentially via `<script defer>` in `index.html`.
 
 ## Core Subsystems & State Management
 
@@ -81,6 +81,12 @@ Pure variable declarations — no event handlers or logic. All central applicati
 - **Color Adjustments (HSL)**: Hue/Saturation/Lightness operates by transforming each non-transparent pixel from RGB to HSL color space (`rgbToHsl`), applying linear numeric offsets to the components (while carefully handling edge cases like achromatic greys preventing artificial saturation injection), and converting back to RGB (`hslToRgb`).
 - **Alpha Correction**: For spatial filters like blur, colors are properly pre-multiplied by their alpha channel before the pass and un-premultiplied afterward, preventing "dirty gray" artifacts in transparent areas. HSL similarly un-premultiplies alpha before color conversion to prevent transparent black fringes from distorting hue calculations.
 - **Selection Integration**: All filters natively respect the global `selectionMask`, using the mask's alpha channel to linearly composite the modified pixel over the original, supporting Photoshop-accurate soft/feathered selection borders.
+
+### 11. Draggable Modals (`js/modal-drag.js`)
+- **Title Bar Dragging:** All `<dialog class="modal">` elements are draggable by their `<h2>` title bar. The script is a self-contained IIFE with no dependencies on global state.
+- **Pointer Capture:** Dragging uses `setPointerCapture` on the `<h2>` handle for reliable tracking even when the cursor moves fast.
+- **Positioning Strategy:** On drag start, the dialog's current `getBoundingClientRect()` position is captured, the browser's default centering (`inset: 0` + `margin: auto`) is replaced with explicit `position: fixed` / `left` / `top`, and mouse deltas are applied from there.
+- **Re-centering on Reopen:** A `MutationObserver` watches each dialog's `open` attribute and clears all inline positioning overrides (including `inset`) when the dialog reopens, restoring the browser's native centering.
 
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.
