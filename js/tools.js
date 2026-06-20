@@ -141,18 +141,8 @@ function pickColor(x, y, isRightClick) {
     
     if (w <= 0 || h <= 0) return;
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = w;
-    tempCanvas.height = h;
+    const tempCanvas = getMergedVisibleCanvas(startX, startY, w, h);
     const ctx = tempCanvas.getContext('2d');
-    
-    for (let i = 0; i < layers.length; i++) {
-        const layer = layers[i];
-        if (layer.visible) {
-            ctx.drawImage(layer.canvas, startX, startY, w, h, 0, 0, w, h);
-        }
-    }
-    
     const imgData = ctx.getImageData(0, 0, w, h).data;
     let r = 0, g = 0, b = 0;
     let count = 0;
@@ -196,19 +186,10 @@ function pickColorForRange(x, y) {
     
     if (w <= 0 || h <= 0) return;
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = w;
-    tempCanvas.height = h;
-    const ctx = tempCanvas.getContext('2d');
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) return;
     
-    for (let i = layers.length - 1; i >= 0; i--) {
-        const layer = layers[i];
-        if (layer.visible) {
-            ctx.drawImage(layer.canvas, startX, startY, w, h, 0, 0, w, h);
-        }
-    }
-    
-    const imgData = ctx.getImageData(0, 0, w, h).data;
+    const imgData = activeObj.ctx.getImageData(startX, startY, w, h).data;
     let r = 0, g = 0, b = 0;
     let count = 0;
     

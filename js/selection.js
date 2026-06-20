@@ -307,22 +307,18 @@ function featherSelection(pixels) {
 function updateColorRangePreview() {
     if (!documentCreated || !colorRangeSampledColor) return;
     
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = documentWidth;
-    tempCanvas.height = documentHeight;
-    const tempCtx = tempCanvas.getContext('2d');
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) return;
     
-    for (let i = layers.length - 1; i >= 0; i--) {
-        if (layers[i].visible) {
-            tempCtx.drawImage(layers[i].canvas, 0, 0);
-        }
-    }
-    
-    const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+    const imgData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
     const data = imgData.data;
     const { r, g, b } = colorRangeSampledColor;
     const fuzziness = colorRangeFuzzinessValue;
     
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = documentWidth;
+    tempCanvas.height = documentHeight;
+    const tempCtx = tempCanvas.getContext('2d');
     const previewData = tempCtx.createImageData(documentWidth, documentHeight);
     const pData = previewData.data;
     
@@ -365,18 +361,10 @@ function updateColorRangePreview() {
 function applyColorRangeSelection() {
     if (!documentCreated || !colorRangeSampledColor) return;
     
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = documentWidth;
-    tempCanvas.height = documentHeight;
-    const tempCtx = tempCanvas.getContext('2d');
+    const activeObj = getActiveLayerObj();
+    if (!activeObj || !activeObj.visible) return;
     
-    for (let i = layers.length - 1; i >= 0; i--) {
-        if (layers[i].visible) {
-            tempCtx.drawImage(layers[i].canvas, 0, 0);
-        }
-    }
-    
-    const imgData = tempCtx.getImageData(0, 0, documentWidth, documentHeight);
+    const imgData = activeObj.ctx.getImageData(0, 0, documentWidth, documentHeight);
     const data = imgData.data;
     const { r, g, b } = colorRangeSampledColor;
     const fuzziness = colorRangeFuzzinessValue;

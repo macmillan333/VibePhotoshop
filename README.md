@@ -55,6 +55,7 @@ I only intend to implement a subset of Photoshop features, ones that I regularly
   * Bevel / emboss
   * Glow
   * Rasterize
+* Nano Banana
 
 ### Browser Compatibility
 

@@ -194,3 +194,22 @@ function compositeStrokeBoundingBox(activeObj, originalLayerCanvas, strokeCanvas
     _ctx.drawImage(strokeCanvas, minX, minY, bw, bh, minX, minY, bw, bh);
     _ctx.restore();
 }
+
+/**
+ * Returns a temporary canvas containing all visible layers merged,
+ * properly composited from bottom to top for the specified region.
+ */
+function getMergedVisibleCanvas(startX, startY, w, h) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const ctx = tempCanvas.getContext('2d');
+    
+    for (let i = layers.length - 1; i >= 0; i--) {
+        const layer = layers[i];
+        if (layer.visible) {
+            ctx.drawImage(layer.canvas, startX, startY, w, h, 0, 0, w, h);
+        }
+    }
+    return tempCanvas;
+}
