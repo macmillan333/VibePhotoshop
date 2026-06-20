@@ -53,54 +53,19 @@ function updateBrushStamp() {
     generateCircleStamp(ctx, brushRadius, brushHardness, r, g, b);
 }
 
-function compositeBrushBoundingBox(minX, minY, maxX, maxY) {
-    const activeObj = getActiveLayerObj();
-    compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', minX, minY, maxX, maxY);
-}
-
 function drawBrushLine(x0, y0, x1, y1) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const dist = Math.hypot(dx, dy);
+    const step = Math.max(1, brushRadius * 2 * (brushSpacing / 100));
     
-    if (dist === 0) return;
-    
-    // Spacing is based on diameter (radius * 2)
-    const step = Math.max(1, brushRadius * 2 * (brushSpacing / 100)); 
-    
-    let traveled = 0;
-    let stamped = false;
-    
-    const pad = brushRadius + 2;
-    let minX = documentWidth;
-    let minY = documentHeight;
-    let maxX = 0;
-    let maxY = 0;
-
-    while (brushDistSinceLastStamp + dist - traveled >= step) {
-        const remainingToNextStamp = step - brushDistSinceLastStamp;
-        traveled += remainingToNextStamp;
-        
-        const t = traveled / dist;
-        const stampX = x0 + dx * t;
-        const stampY = y0 + dy * t;
-        
-        brushStrokeCtx.drawImage(brushStampCanvas, Math.round(stampX) - brushRadius, Math.round(stampY) - brushRadius);
-        
-        minX = Math.min(minX, stampX - pad);
-        minY = Math.min(minY, stampY - pad);
-        maxX = Math.max(maxX, stampX + pad);
-        maxY = Math.max(maxY, stampY + pad);
-        
-        brushDistSinceLastStamp = 0;
-        stamped = true;
-    }
-    
-    brushDistSinceLastStamp += (dist - traveled);
-    
-    if (stamped) {
-        compositeBrushBoundingBox(minX, minY, maxX, maxY);
-    }
+    brushDistSinceLastStamp = drawStampLine(
+        x0, y0, x1, y1,
+        step, brushRadius,
+        brushStampCanvas, brushStrokeCtx,
+        brushDistSinceLastStamp,
+        (minX, minY, maxX, maxY) => {
+            const activeObj = getActiveLayerObj();
+            compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', minX, minY, maxX, maxY);
+        }
+    );
 }
 
 // Pointer Event Handlers for Brush
@@ -125,7 +90,7 @@ function handleBrushPointerDown(e, coords) {
     brushStrokeCtx.drawImage(brushStampCanvas, Math.round(lastX) - brushRadius, Math.round(lastY) - brushRadius);
 
     const pad = brushRadius + 2;
-    compositeBrushBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
+    compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', lastX - pad, lastY - pad, lastX + pad, lastY + pad);
 
     canvasWrapper.setPointerCapture(e.pointerId);
 }

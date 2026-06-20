@@ -231,6 +231,8 @@ const toolBtns = [toolMove, toolPencil, toolBrush, toolEraser, toolZoom, toolRec
 
 let currentTool = null;
 let isDrawing = false;
+let isErasing = false;
+let eraserDistSinceLastStamp = 0;
 let lastX = 0;
 let lastY = 0;
 

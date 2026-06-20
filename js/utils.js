@@ -196,6 +196,54 @@ function compositeStrokeBoundingBox(activeObj, originalLayerCanvas, strokeCanvas
 }
 
 /**
+ * Shared stroke interpolator for Brush and Eraser tools.
+ * Draws a sequence of stamps along a line and calls onComposite with the bounding box.
+ */
+function drawStampLine(x0, y0, x1, y1, step, radius, stampCanvas, strokeCtx, distSinceLastStamp, onComposite) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const dist = Math.hypot(dx, dy);
+    
+    if (dist === 0) return distSinceLastStamp;
+    
+    let traveled = 0;
+    let stamped = false;
+    
+    const pad = radius + 2;
+    let minX = documentWidth;
+    let minY = documentHeight;
+    let maxX = 0;
+    let maxY = 0;
+
+    while (distSinceLastStamp + dist - traveled >= step) {
+        const remainingToNextStamp = step - distSinceLastStamp;
+        traveled += remainingToNextStamp;
+        
+        const t = traveled / dist;
+        const stampX = x0 + dx * t;
+        const stampY = y0 + dy * t;
+        
+        strokeCtx.drawImage(stampCanvas, Math.round(stampX) - radius, Math.round(stampY) - radius);
+        
+        minX = Math.min(minX, stampX - pad);
+        minY = Math.min(minY, stampY - pad);
+        maxX = Math.max(maxX, stampX + pad);
+        maxY = Math.max(maxY, stampY + pad);
+        
+        distSinceLastStamp = 0;
+        stamped = true;
+    }
+    
+    distSinceLastStamp += (dist - traveled);
+    
+    if (stamped && onComposite) {
+        onComposite(minX, minY, maxX, maxY);
+    }
+    
+    return distSinceLastStamp;
+}
+
+/**
  * Returns a temporary canvas containing all visible layers merged,
  * properly composited from bottom to top for the specified region.
  */

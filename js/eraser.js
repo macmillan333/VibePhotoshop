@@ -71,47 +71,19 @@ function updateEraserStamp() {
     }
 }
 
-function compositeEraserBoundingBox(minX, minY, maxX, maxY) {
-    const activeObj = getActiveLayerObj();
-    compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', minX, minY, maxX, maxY);
-}
-
 function drawEraserLine(x0, y0, x1, y1) {
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-    const dist = Math.hypot(dx, dy);
-    
-    if (dist === 0) return;
-    
     const step = 1; 
-    let traveled = 0;
-    let stamped = false;
     
-    const pad = eraserRadius + 2;
-    let minX = documentWidth;
-    let minY = documentHeight;
-    let maxX = 0;
-    let maxY = 0;
-
-    while (traveled <= dist) {
-        const t = traveled / dist;
-        const stampX = x0 + dx * t;
-        const stampY = y0 + dy * t;
-        
-        eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(stampX) - eraserRadius, Math.round(stampY) - eraserRadius);
-        
-        minX = Math.min(minX, stampX - pad);
-        minY = Math.min(minY, stampY - pad);
-        maxX = Math.max(maxX, stampX + pad);
-        maxY = Math.max(maxY, stampY + pad);
-        
-        traveled += step;
-        stamped = true;
-    }
-    
-    if (stamped) {
-        compositeEraserBoundingBox(minX, minY, maxX, maxY);
-    }
+    eraserDistSinceLastStamp = drawStampLine(
+        x0, y0, x1, y1,
+        step, eraserRadius,
+        eraserStampCanvas, eraserStrokeCtx,
+        eraserDistSinceLastStamp,
+        (minX, minY, maxX, maxY) => {
+            const activeObj = getActiveLayerObj();
+            compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', minX, minY, maxX, maxY);
+        }
+    );
 }
 
 // Pointer Event Handlers for Eraser
@@ -132,10 +104,11 @@ function handleEraserPointerDown(e, coords) {
     eraserOriginalLayerCanvas.height = documentHeight;
     eraserOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
     
+    eraserDistSinceLastStamp = 0;
     eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(lastX) - eraserRadius, Math.round(lastY) - eraserRadius);
     
     const pad = eraserRadius + 2;
-    compositeEraserBoundingBox(lastX - pad, lastY - pad, lastX + pad, lastY + pad);
+    compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', lastX - pad, lastY - pad, lastX + pad, lastY + pad);
     
     canvasWrapper.setPointerCapture(e.pointerId);
 }
