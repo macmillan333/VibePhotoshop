@@ -56,156 +56,33 @@ function renderSelectionVisual() {
     selectionCtx.lineDashOffset = 0;
 }
 
-function expandSelection(pixels) {
-    if (!documentCreated || pixels <= 0) return;
+function applyMorphologicalOperation(sourceMask, pixels, isExpand) {
     let w = documentWidth;
     let h = documentHeight;
     let r2 = pixels * pixels;
-    
-    let newMask = new Uint8Array(selectionMask);
-    
-    for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-            if (selectionMask[y * w + x] > 0) {
-                // Is boundary?
-                if (x === 0 || x === w - 1 || y === 0 || y === h - 1 ||
-                    selectionMask[y * w + (x - 1)] === 0 ||
-                    selectionMask[y * w + (x + 1)] === 0 ||
-                    selectionMask[(y - 1) * w + x] === 0 ||
-                    selectionMask[(y + 1) * w + x] === 0) {
-                    
-                    let startY = Math.max(0, y - pixels);
-                    let endY = Math.min(h - 1, y + pixels);
-                    let startX = Math.max(0, x - pixels);
-                    let endX = Math.min(w - 1, x + pixels);
-                    
-                    for (let ny = startY; ny <= endY; ny++) {
-                        for (let nx = startX; nx <= endX; nx++) {
-                            if (newMask[ny * w + nx] === 0) {
-                                let dx = x - nx;
-                                let dy = y - ny;
-                                if (dx * dx + dy * dy <= r2) {
-                                    newMask[ny * w + nx] = 255;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    selectionMask.set(newMask);
-    renderSelectionVisual();
-    saveState();
-}
-
-function contractSelection(pixels) {
-    if (!documentCreated || pixels <= 0) return;
-    let w = documentWidth;
-    let h = documentHeight;
-    let r2 = pixels * pixels;
-    
-    let newMask = new Uint8Array(selectionMask);
+    let newMask = new Uint8Array(sourceMask);
     
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            if (selectionMask[y * w + x] === 0 || x === 0 || x === w - 1 || y === 0 || y === h - 1) {
-                let isBoundary = false;
-                if (selectionMask[y * w + x] === 0) {
-                    if ((x > 0 && selectionMask[y * w + (x - 1)] > 0) ||
-                        (x < w - 1 && selectionMask[y * w + (x + 1)] > 0) ||
-                        (y > 0 && selectionMask[(y - 1) * w + x] > 0) ||
-                        (y < h - 1 && selectionMask[(y + 1) * w + x] > 0)) {
-                        isBoundary = true;
-                    }
-                } else {
-                    if (x === 0 || x === w - 1 || y === 0 || y === h - 1) {
-                        isBoundary = true;
-                    }
-                }
-
-                if (isBoundary) {
-                    let startY = Math.max(0, y - pixels);
-                    let endY = Math.min(h - 1, y + pixels);
-                    let startX = Math.max(0, x - pixels);
-                    let endX = Math.min(w - 1, x + pixels);
-                    
-                    for (let ny = startY; ny <= endY; ny++) {
-                        for (let nx = startX; nx <= endX; nx++) {
-                            if (newMask[ny * w + nx] > 0) {
-                                let dx = x - nx;
-                                let dy = y - ny;
-                                if (dx * dx + dy * dy <= r2) {
-                                    newMask[ny * w + nx] = 0;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    selectionMask.set(newMask);
-    renderSelectionVisual();
-    saveState();
-}
-
-function borderSelection(pixels) {
-    if (!documentCreated || pixels <= 0) return;
-    let w = documentWidth;
-    let h = documentHeight;
-    
-    let a = Math.floor(pixels / 2);
-    let b = Math.ceil(pixels / 2);
-    
-    let maskA = new Uint8Array(selectionMask);
-    if (a > 0) {
-        let r2 = a * a;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (selectionMask[y * w + x] > 0) {
+            let isBoundary = false;
+            
+            if (isExpand) {
+                if (sourceMask[y * w + x] > 0) {
                     if (x === 0 || x === w - 1 || y === 0 || y === h - 1 ||
-                        selectionMask[y * w + (x - 1)] === 0 ||
-                        selectionMask[y * w + (x + 1)] === 0 ||
-                        selectionMask[(y - 1) * w + x] === 0 ||
-                        selectionMask[(y + 1) * w + x] === 0) {
-                        
-                        let startY = Math.max(0, y - a);
-                        let endY = Math.min(h - 1, y + a);
-                        let startX = Math.max(0, x - a);
-                        let endX = Math.min(w - 1, x + a);
-                        
-                        for (let ny = startY; ny <= endY; ny++) {
-                            for (let nx = startX; nx <= endX; nx++) {
-                                if (maskA[ny * w + nx] === 0) {
-                                    let dx = x - nx;
-                                    let dy = y - ny;
-                                    if (dx * dx + dy * dy <= r2) {
-                                        maskA[ny * w + nx] = 255;
-                                    }
-                                }
-                            }
-                        }
+                        sourceMask[y * w + (x - 1)] === 0 ||
+                        sourceMask[y * w + (x + 1)] === 0 ||
+                        sourceMask[(y - 1) * w + x] === 0 ||
+                        sourceMask[(y + 1) * w + x] === 0) {
+                        isBoundary = true;
                     }
                 }
-            }
-        }
-    }
-    
-    let maskB = new Uint8Array(selectionMask);
-    if (b > 0) {
-        let r2 = b * b;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (selectionMask[y * w + x] === 0 || x === 0 || x === w - 1 || y === 0 || y === h - 1) {
-                    let isBoundary = false;
-                    if (selectionMask[y * w + x] === 0) {
-                        if ((x > 0 && selectionMask[y * w + (x - 1)] > 0) ||
-                            (x < w - 1 && selectionMask[y * w + (x + 1)] > 0) ||
-                            (y > 0 && selectionMask[(y - 1) * w + x] > 0) ||
-                            (y < h - 1 && selectionMask[(y + 1) * w + x] > 0)) {
+            } else {
+                if (sourceMask[y * w + x] === 0 || x === 0 || x === w - 1 || y === 0 || y === h - 1) {
+                    if (sourceMask[y * w + x] === 0) {
+                        if ((x > 0 && sourceMask[y * w + (x - 1)] > 0) ||
+                            (x < w - 1 && sourceMask[y * w + (x + 1)] > 0) ||
+                            (y > 0 && sourceMask[(y - 1) * w + x] > 0) ||
+                            (y < h - 1 && sourceMask[(y + 1) * w + x] > 0)) {
                             isBoundary = true;
                         }
                     } else {
@@ -213,22 +90,23 @@ function borderSelection(pixels) {
                             isBoundary = true;
                         }
                     }
+                }
+            }
 
-                    if (isBoundary) {
-                        let startY = Math.max(0, y - b);
-                        let endY = Math.min(h - 1, y + b);
-                        let startX = Math.max(0, x - b);
-                        let endX = Math.min(w - 1, x + b);
-                        
-                        for (let ny = startY; ny <= endY; ny++) {
-                            for (let nx = startX; nx <= endX; nx++) {
-                                if (maskB[ny * w + nx] > 0) {
-                                    let dx = x - nx;
-                                    let dy = y - ny;
-                                    if (dx * dx + dy * dy <= r2) {
-                                        maskB[ny * w + nx] = 0;
-                                    }
-                                }
+            if (isBoundary) {
+                let startY = Math.max(0, y - pixels);
+                let endY = Math.min(h - 1, y + pixels);
+                let startX = Math.max(0, x - pixels);
+                let endX = Math.min(w - 1, x + pixels);
+                
+                for (let ny = startY; ny <= endY; ny++) {
+                    for (let nx = startX; nx <= endX; nx++) {
+                        let targetVal = newMask[ny * w + nx];
+                        if ((isExpand && targetVal === 0) || (!isExpand && targetVal > 0)) {
+                            let dx = x - nx;
+                            let dy = y - ny;
+                            if (dx * dx + dy * dy <= r2) {
+                                newMask[ny * w + nx] = isExpand ? 255 : 0;
                             }
                         }
                     }
@@ -237,12 +115,33 @@ function borderSelection(pixels) {
         }
     }
     
-    for (let i = 0; i < w * h; i++) {
-        if (maskA[i] > 0 && maskB[i] === 0) {
-            selectionMask[i] = 255;
-        } else {
-            selectionMask[i] = 0;
-        }
+    return newMask;
+}
+
+function expandSelection(pixels) {
+    if (!documentCreated || pixels <= 0) return;
+    selectionMask.set(applyMorphologicalOperation(selectionMask, pixels, true));
+    renderSelectionVisual();
+    saveState();
+}
+
+function contractSelection(pixels) {
+    if (!documentCreated || pixels <= 0) return;
+    selectionMask.set(applyMorphologicalOperation(selectionMask, pixels, false));
+    renderSelectionVisual();
+    saveState();
+}
+
+function borderSelection(pixels) {
+    if (!documentCreated || pixels <= 0) return;
+    let a = Math.floor(pixels / 2);
+    let b = Math.ceil(pixels / 2);
+    
+    let maskA = a > 0 ? applyMorphologicalOperation(selectionMask, a, true) : new Uint8Array(selectionMask);
+    let maskB = b > 0 ? applyMorphologicalOperation(selectionMask, b, false) : new Uint8Array(selectionMask);
+    
+    for (let i = 0; i < documentWidth * documentHeight; i++) {
+        selectionMask[i] = (maskA[i] > 0 && maskB[i] === 0) ? 255 : 0;
     }
     
     renderSelectionVisual();
