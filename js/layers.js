@@ -58,6 +58,8 @@ function initDocument(w, h, skipBaseLayer = false) {
     btnSaveAs.removeAttribute('disabled');
     btnExport.removeAttribute('disabled');
     btnAddLayer.removeAttribute('disabled');
+    layerOpacitySlider.removeAttribute('disabled');
+    layerBlendModeSelect.removeAttribute('disabled');
     btnUndo.removeAttribute('disabled');
     btnRedo.removeAttribute('disabled');
     btnImageSize.removeAttribute('disabled');
@@ -101,6 +103,23 @@ function setActiveLayer(id) {
             item.classList.remove('selected');
         }
     });
+
+    const activeObj = getActiveLayerObj();
+    if (activeObj) {
+        layerOpacitySlider.value = Math.round((activeObj.opacity !== undefined ? activeObj.opacity : 1.0) * 100);
+        layerOpacityValue.textContent = `${layerOpacitySlider.value}%`;
+        layerOpacitySlider.disabled = false;
+        
+        layerBlendModeSelect.value = activeObj.blendMode || 'normal';
+        layerBlendModeSelect.disabled = false;
+    } else {
+        layerOpacitySlider.value = 100;
+        layerOpacityValue.textContent = '100%';
+        layerOpacitySlider.disabled = true;
+        
+        layerBlendModeSelect.value = 'normal';
+        layerBlendModeSelect.disabled = true;
+    }
 }
 
 function getActiveLayerObj() {
@@ -126,7 +145,9 @@ function createLayer(name = `Layer ${layerCounter + 1}`, type = 'pixel') {
     canvasStack.appendChild(selectionOverlay);
     canvasStack.appendChild(selectionDragOverlay);
 
-    const layerObj = { id, name, canvas: c, ctx: cx, visible: true, type };
+    const layerObj = { id, name, canvas: c, ctx: cx, visible: true, type, opacity: 1.0, blendMode: 'normal' };
+    c.style.opacity = layerObj.opacity;
+    c.style.mixBlendMode = layerObj.blendMode === 'additive' ? 'plus-lighter' : layerObj.blendMode;
     if (type === 'text') {
         layerObj.textContent = '';
         layerObj.htmlContent = '';
@@ -439,6 +460,10 @@ ctxDuplicateLayer.addEventListener('click', () => {
     layers.splice(idx, 0, createdLayerObj);
 
     createdLayerObj.ctx.drawImage(activeObj.canvas, 0, 0);
+    createdLayerObj.opacity = activeObj.opacity;
+    createdLayerObj.canvas.style.opacity = createdLayerObj.opacity;
+    createdLayerObj.blendMode = activeObj.blendMode;
+    createdLayerObj.canvas.style.mixBlendMode = activeObj.canvas.style.mixBlendMode;
     updateZIndices();
     renderLayersList();
     setActiveLayer(createdLayerObj.id);
@@ -505,7 +530,11 @@ ctxMergeSelected.addEventListener('click', () => {
 
     for (const lObj of sortedSelectedLayers) {
         if (lObj.visible) {
+            mCtx.globalAlpha = lObj.opacity !== undefined ? lObj.opacity : 1.0;
+            mCtx.globalCompositeOperation = lObj.blendMode === 'additive' ? 'lighter' : (lObj.blendMode === 'normal' ? 'source-over' : lObj.blendMode);
             mCtx.drawImage(lObj.canvas, 0, 0);
+            mCtx.globalAlpha = 1.0;
+            mCtx.globalCompositeOperation = 'source-over';
         }
     }
 
@@ -529,7 +558,9 @@ ctxMergeSelected.addEventListener('click', () => {
     canvasStack.appendChild(selectionDragOverlay);
     canvasStack.appendChild(transformBox);
 
-    const newLayerObj = { id: newId, name: topmostName, canvas: c, ctx: cx, visible: true };
+    const newLayerObj = { id: newId, name: topmostName, canvas: c, ctx: cx, visible: true, type: 'pixel', opacity: 1.0, blendMode: 'normal' };
+    c.style.opacity = newLayerObj.opacity;
+    c.style.mixBlendMode = 'normal';
 
     layers.splice(topmostIndex, 0, newLayerObj);
 
@@ -541,5 +572,28 @@ ctxMergeSelected.addEventListener('click', () => {
     renderLayersList();
     setActiveLayer(newId);
     saveState();
+});
+
+layerOpacitySlider.addEventListener('input', (e) => {
+    const activeObj = getActiveLayerObj();
+    if (activeObj) {
+        const val = e.target.value;
+        activeObj.opacity = val / 100;
+        activeObj.canvas.style.opacity = activeObj.opacity;
+        layerOpacityValue.textContent = `${val}%`;
+    }
+});
+
+layerOpacitySlider.addEventListener('change', () => {
+    saveState();
+});
+
+layerBlendModeSelect.addEventListener('change', (e) => {
+    const activeObj = getActiveLayerObj();
+    if (activeObj) {
+        activeObj.blendMode = e.target.value;
+        activeObj.canvas.style.mixBlendMode = activeObj.blendMode === 'additive' ? 'plus-lighter' : activeObj.blendMode;
+        saveState();
+    }
 });
 

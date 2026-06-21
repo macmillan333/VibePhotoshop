@@ -17,6 +17,8 @@ function saveState() {
                 id: l.id,
                 name: l.name,
                 visible: l.visible,
+                opacity: l.opacity !== undefined ? l.opacity : 1.0,
+                blendMode: l.blendMode || 'normal',
                 imgData: l.ctx.getImageData(0, 0, documentWidth, documentHeight)
             };
         })
@@ -49,12 +51,14 @@ function restoreState(state) {
         c.width = documentWidth;
         c.height = documentHeight;
         c.style.display = lData.visible ? 'block' : 'none';
+        c.style.opacity = lData.opacity !== undefined ? lData.opacity : 1.0;
+        c.style.mixBlendMode = lData.blendMode === 'additive' ? 'plus-lighter' : (lData.blendMode || 'normal');
         const cx = c.getContext('2d', { willReadFrequently: true });
 
         cx.putImageData(lData.imgData, 0, 0);
 
         canvasStack.appendChild(c);
-        layers.push({ id: lData.id, name: lData.name, visible: lData.visible, canvas: c, ctx: cx });
+        layers.push({ id: lData.id, name: lData.name, visible: lData.visible, opacity: lData.opacity !== undefined ? lData.opacity : 1.0, blendMode: lData.blendMode || 'normal', canvas: c, ctx: cx });
     });
 
     // Ensure selection canvas remains cleanly anchored at top

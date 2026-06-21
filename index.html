@@ -375,6 +375,32 @@
                         </svg>
                     </button>
                 </div>
+                <div class="layer-controls" style="padding: 8px 16px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                    <select id="layer-blend-mode-select" disabled style="width: 100%; padding: 4px; font-size: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 2px;">
+                        <option value="normal">Normal</option>
+                        <option value="multiply">Multiply</option>
+                        <option value="screen">Screen</option>
+                        <option value="overlay">Overlay</option>
+                        <option value="darken">Darken</option>
+                        <option value="lighten">Lighten</option>
+                        <option value="color-dodge">Color Dodge</option>
+                        <option value="color-burn">Color Burn</option>
+                        <option value="hard-light">Hard Light</option>
+                        <option value="soft-light">Soft Light</option>
+                        <option value="difference">Difference</option>
+                        <option value="exclusion">Exclusion</option>
+                        <option value="hue">Hue</option>
+                        <option value="saturation">Saturation</option>
+                        <option value="color">Color</option>
+                        <option value="luminosity">Luminosity</option>
+                        <option value="additive">Additive</option>
+                    </select>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="layer-opacity-slider" style="font-size: 12px; color: var(--text-secondary);">Opacity</label>
+                        <input type="range" id="layer-opacity-slider" min="0" max="100" value="100" style="flex: 1;" disabled>
+                        <span id="layer-opacity-value" style="font-size: 12px; color: var(--text-secondary); width: 32px; text-align: right;">100%</span>
+                    </div>
+                </div>
                 <div class="layers-list" id="layers-list">
                     <!-- Layer items injected here -->
                 </div>

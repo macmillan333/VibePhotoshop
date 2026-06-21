@@ -275,7 +275,8 @@ async function buildVpsBlob() {
             name: layer.name,
             file: pngFilename,
             visible: layer.visible,
-            opacity: 1.0,
+            opacity: layer.opacity !== undefined ? layer.opacity : 1.0,
+            blendMode: layer.blendMode || 'normal',
             type: layer.type,
             textContent: layer.textContent,
             htmlContent: layer.htmlContent,
@@ -416,6 +417,10 @@ async function openVpsFile(file) {
                     layer.textY = layerInfo.textY || 0;
                 }
                 layer.visible = layerInfo.visible;
+                layer.opacity = layerInfo.opacity !== undefined ? layerInfo.opacity : 1.0;
+                layer.canvas.style.opacity = layer.opacity;
+                layer.blendMode = layerInfo.blendMode || 'normal';
+                layer.canvas.style.mixBlendMode = layer.blendMode === 'additive' ? 'plus-lighter' : layer.blendMode;
                 if (!layer.visible) {
                     layer.canvas.style.display = 'none';
                 }
@@ -432,6 +437,10 @@ async function openVpsFile(file) {
             }
             layer.ctx.drawImage(img, 0, 0);
             layer.visible = layerInfo.visible;
+            layer.opacity = layerInfo.opacity !== undefined ? layerInfo.opacity : 1.0;
+            layer.canvas.style.opacity = layer.opacity;
+            layer.blendMode = layerInfo.blendMode || 'normal';
+            layer.canvas.style.mixBlendMode = layer.blendMode === 'additive' ? 'plus-lighter' : layer.blendMode;
             if (!layer.visible) {
                 layer.canvas.style.display = 'none';
             }
