@@ -167,10 +167,10 @@ function pickColor(x, y, isRightClick) {
     
     if (isRightClick) {
         bgColor = hex;
-        bgColorInput.value = hex;
+        bgColorInput.style.backgroundColor = hex;
     } else {
         fgColor = hex;
-        fgColorInput.value = hex;
+        fgColorInput.style.backgroundColor = hex;
         if (typeof updateBrushStamp === 'function') updateBrushStamp();
     }
 }

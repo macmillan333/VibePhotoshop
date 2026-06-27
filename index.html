@@ -164,11 +164,25 @@
                     </button>
                 </div>
                 <div class="color-picker-widget">
+                    <button id="btn-reset-colors" title="Default Colors (D)" class="color-reset-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <rect x="10" y="4" width="10" height="10" fill="#ffffff" stroke="var(--text-secondary)" stroke-width="1.5"></rect>
+                            <rect x="4" y="10" width="10" height="10" fill="#000000" stroke="var(--text-secondary)" stroke-width="1.5"></rect>
+                        </svg>
+                    </button>
+                    <button id="btn-swap-colors" title="Swap Colors (X)" class="color-swap-btn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                            <polyline points="7 23 3 19 7 15"></polyline>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                        </svg>
+                    </button>
                     <div class="color-wrapper bg-wrapper">
-                        <input type="color" id="bg-color" value="#ffffff" title="Set background color">
+                        <div id="bg-color" class="color-swatch" title="Set background color" style="background-color: #ffffff;"></div>
                     </div>
                     <div class="color-wrapper fg-wrapper">
-                        <input type="color" id="fg-color" value="#000000" title="Set foreground color">
+                        <div id="fg-color" class="color-swatch" title="Set foreground color" style="background-color: #000000;"></div>
                     </div>
                 </div>
             </aside>
@@ -656,6 +670,83 @@
             <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" id="btn-cancel-color-range">Cancel</button>
                 <button type="submit" class="btn btn-primary">OK</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Custom Color Picker Modal -->
+    <dialog id="custom-color-picker-modal" class="modal" style="width: fit-content; z-index: 100000; padding: 16px;">
+        <form method="dialog" id="custom-color-picker-form">
+            <h2 style="margin-top: 0; margin-bottom: 10px; font-size: 15px;">Color Picker</h2>
+            <div style="display: flex; gap: 10px;">
+                <!-- SV Map -->
+                <div style="position: relative; width: 180px; height: 180px; border: 1px solid var(--border-color); cursor: crosshair; flex-shrink: 0;" id="cp-sv-container">
+                    <canvas id="cp-sv-canvas" width="180" height="180" style="display: block; width: 100%; height: 100%;"></canvas>
+                    <div id="cp-sv-cursor" style="position: absolute; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 2px #000; pointer-events: none; transform: translate(-50%, -50%);"></div>
+                </div>
+                
+                <!-- Hue Slider -->
+                <div style="position: relative; width: 16px; height: 180px; border: 1px solid var(--border-color); cursor: ns-resize; flex-shrink: 0;" id="cp-hue-container">
+                    <canvas id="cp-hue-canvas" width="16" height="180" style="display: block; width: 100%; height: 100%;"></canvas>
+                    <div id="cp-hue-cursor" style="position: absolute; left: -2px; right: -2px; height: 4px; border: 2px solid #fff; border-radius: 2px; box-shadow: 0 0 2px #000; pointer-events: none; transform: translateY(-50%);"></div>
+                </div>
+
+                <!-- Inputs and Swatches -->
+                <div style="display: flex; flex-direction: column; gap: 8px; width: 220px; flex-shrink: 0;">
+                    <div style="display: flex; height: 32px; border: 1px solid var(--border-color); border-radius: 3px; overflow: hidden;">
+                        <div id="cp-new-swatch" style="flex: 1; background: #ff0000;" title="New Color"></div>
+                        <div id="cp-current-swatch" style="flex: 1; background: #000000;" title="Current Color"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px;">
+                        <!-- HSV Column -->
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">H:</label>
+                            <input type="number" id="cp-input-h" min="0" max="360" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;">°</span>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">R:</label>
+                            <input type="number" id="cp-input-r" min="0" max="255" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;"></span>
+                        </div>
+
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">S:</label>
+                            <input type="number" id="cp-input-s" min="0" max="100" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;">%</span>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">G:</label>
+                            <input type="number" id="cp-input-g" min="0" max="255" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;"></span>
+                        </div>
+
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">V:</label>
+                            <input type="number" id="cp-input-v" min="0" max="100" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;">%</span>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                            <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">B:</label>
+                            <input type="number" id="cp-input-b" min="0" max="255" style="flex: 1; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;">
+                            <span style="width: 10px; flex-shrink: 0; font-size: 10px;"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="display: flex; flex-direction: row; align-items: center; gap: 3px; margin: 0;">
+                        <label style="width: 13px; flex-shrink: 0; margin: 0; font-size: 11px; text-align: right;">#</label>
+                        <input type="text" id="cp-input-hex" style="flex: 1; text-transform: uppercase; padding: 2px 3px; font-size: 11px; height: 22px; min-width: 0;" maxlength="6">
+                        <span style="width: 10px; flex-shrink: 0;"></span>
+                    </div>
+
+                    <div style="flex: 1;"></div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-custom-color-picker" style="padding: 3px 10px; font-size: 12px;">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="btn-ok-custom-color-picker" style="padding: 3px 10px; font-size: 12px;">OK</button>
+                    </div>
+                </div>
             </div>
         </form>
     </dialog>

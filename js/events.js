@@ -246,6 +246,14 @@ document.addEventListener('keydown', (e) => {
             updateLayerThumbnail(newLayer.id);
             saveState();
         }
+    } else if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (e.key === 'x' || e.key === 'X') {
+            e.preventDefault();
+            btnSwapColors.click();
+        } else if (e.key === 'd' || e.key === 'D') {
+            e.preventDefault();
+            btnResetColors.click();
+        }
     }
 });
 
@@ -1029,33 +1037,48 @@ document.addEventListener('click', (e) => {
 
 // --- Color Picker Events ---
 let _fgColorSavedSelection = null;
-fgColorInput.addEventListener('pointerdown', () => {
-    // Save text selection before the native color picker dialog steals focus
-    if (isTypingText) {
+
+function openCustomColorPicker(target) {
+    cpActiveTarget = target;
+    const colorHex = target === 'fg' ? fgColor : bgColor;
+    const [r, g, b] = hexToRgb(colorHex);
+    const [h, s, v] = rgbToHsv(r, g, b);
+    
+    cpCurrentH = h;
+    cpCurrentS = s;
+    cpCurrentV = v;
+
+    cpCurrentSwatch.style.backgroundColor = colorHex;
+    updateColorPickerUI(false);
+
+    if (isTypingText && target === 'fg') {
         const sel = window.getSelection();
         if (sel.rangeCount > 0 && textEditor.contains(sel.anchorNode)) {
             _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
         }
     }
+    cpModal.showModal();
+}
+
+fgColorInput.addEventListener('click', () => openCustomColorPicker('fg'));
+bgColorInput.addEventListener('click', () => openCustomColorPicker('bg'));
+
+btnSwapColors.addEventListener('click', () => {
+    const temp = fgColor;
+    fgColor = bgColor;
+    bgColor = temp;
+    fgColorInput.style.backgroundColor = fgColor;
+    bgColorInput.style.backgroundColor = bgColor;
+    if (typeof updateBrushStamp === 'function') updateBrushStamp();
 });
-fgColorInput.addEventListener('input', (e) => {
-    fgColor = e.target.value;
-    if (isTypingText && _fgColorSavedSelection) {
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(_fgColorSavedSelection);
-        if (!sel.isCollapsed) {
-            document.execCommand('styleWithCSS', false, true);
-            document.execCommand('foreColor', false, fgColor);
-            // Re-save the selection for continued color-picker dragging
-            if (sel.rangeCount > 0) {
-                _fgColorSavedSelection = sel.getRangeAt(0).cloneRange();
-            }
-        }
-    }
-    updateBrushStamp();
+
+btnResetColors.addEventListener('click', () => {
+    fgColor = '#000000';
+    bgColor = '#ffffff';
+    fgColorInput.style.backgroundColor = fgColor;
+    bgColorInput.style.backgroundColor = bgColor;
+    if (typeof updateBrushStamp === 'function') updateBrushStamp();
 });
-bgColorInput.addEventListener('input', (e) => { bgColor = e.target.value; });
 
 // --- Ruler Drag (Create Guide) ---
 function handleRulerPointerMove(e) {
@@ -1115,3 +1138,183 @@ rulerLeftCanvas.addEventListener('pointerdown', (e) => {
 });
 rulerLeftCanvas.addEventListener('pointermove', handleRulerPointerMove);
 rulerLeftCanvas.addEventListener('pointerup', handleRulerPointerUp);
+
+// --- Custom Color Picker Implementation ---
+let cpIsDraggingSV = false;
+let cpIsDraggingHue = false;
+
+function updateColorPickerUI(fromInputs) {
+    cpCurrentH = Math.max(0, Math.min(360, cpCurrentH || 0));
+    cpCurrentS = Math.max(0, Math.min(100, cpCurrentS || 0));
+    cpCurrentV = Math.max(0, Math.min(100, cpCurrentV || 0));
+
+    const [r, g, b] = hsvToRgb(cpCurrentH, cpCurrentS, cpCurrentV);
+    const hex = rgbToHex(r, g, b);
+
+    cpNewSwatch.style.backgroundColor = hex;
+
+    if (!fromInputs) {
+        cpInputH.value = Math.round(cpCurrentH);
+        cpInputS.value = Math.round(cpCurrentS);
+        cpInputV.value = Math.round(cpCurrentV);
+        cpInputR.value = Math.round(r);
+        cpInputG.value = Math.round(g);
+        cpInputB.value = Math.round(b);
+        cpInputHex.value = hex.substring(1);
+    }
+
+    cpSvCursor.style.left = `${cpCurrentS}%`;
+    cpSvCursor.style.top = `${100 - cpCurrentV}%`;
+    cpHueCursor.style.top = `${(cpCurrentH / 360) * 100}%`;
+
+    renderColorPickerCanvases();
+}
+
+function renderColorPickerCanvases() {
+    const svCtx = cpSvCanvas.getContext('2d', { willReadFrequently: true });
+    const width = cpSvCanvas.width;
+    const height = cpSvCanvas.height;
+
+    const [hr, hg, hb] = hsvToRgb(cpCurrentH, 100, 100);
+    svCtx.fillStyle = `rgb(${hr}, ${hg}, ${hb})`;
+    svCtx.fillRect(0, 0, width, height);
+
+    const whiteGrad = svCtx.createLinearGradient(0, 0, width, 0);
+    whiteGrad.addColorStop(0, 'rgba(255,255,255,1)');
+    whiteGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    svCtx.fillStyle = whiteGrad;
+    svCtx.fillRect(0, 0, width, height);
+
+    const blackGrad = svCtx.createLinearGradient(0, 0, 0, height);
+    blackGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    blackGrad.addColorStop(1, 'rgba(0,0,0,1)');
+    svCtx.fillStyle = blackGrad;
+    svCtx.fillRect(0, 0, width, height);
+
+    const hueCtx = cpHueCanvas.getContext('2d', { willReadFrequently: true });
+    const hWidth = cpHueCanvas.width;
+    const hHeight = cpHueCanvas.height;
+    const hueGrad = hueCtx.createLinearGradient(0, 0, 0, hHeight);
+    hueGrad.addColorStop(0, '#ff0000');
+    hueGrad.addColorStop(1/6, '#ffff00');
+    hueGrad.addColorStop(2/6, '#00ff00');
+    hueGrad.addColorStop(3/6, '#00ffff');
+    hueGrad.addColorStop(4/6, '#0000ff');
+    hueGrad.addColorStop(5/6, '#ff00ff');
+    hueGrad.addColorStop(1, '#ff0000');
+    hueCtx.fillStyle = hueGrad;
+    hueCtx.fillRect(0, 0, hWidth, hHeight);
+}
+
+function handleSvDrag(e) {
+    if (!cpIsDraggingSV) return;
+    const rect = cpSvContainer.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    x = Math.max(0, Math.min(rect.width, x));
+    y = Math.max(0, Math.min(rect.height, y));
+    cpCurrentS = (x / rect.width) * 100;
+    cpCurrentV = 100 - (y / rect.height) * 100;
+    updateColorPickerUI(false);
+}
+
+cpSvContainer.addEventListener('pointerdown', (e) => {
+    cpIsDraggingSV = true;
+    try { cpSvContainer.setPointerCapture(e.pointerId); } catch(e){}
+    handleSvDrag(e);
+});
+cpSvContainer.addEventListener('pointermove', handleSvDrag);
+cpSvContainer.addEventListener('pointerup', (e) => {
+    cpIsDraggingSV = false;
+    try { cpSvContainer.releasePointerCapture(e.pointerId); } catch(e){}
+});
+
+function handleHueDrag(e) {
+    if (!cpIsDraggingHue) return;
+    const rect = cpHueContainer.getBoundingClientRect();
+    let y = e.clientY - rect.top;
+    y = Math.max(0, Math.min(rect.height, y));
+    cpCurrentH = (y / rect.height) * 360;
+    if (cpCurrentH === 360) cpCurrentH = 0;
+    updateColorPickerUI(false);
+}
+
+cpHueContainer.addEventListener('pointerdown', (e) => {
+    cpIsDraggingHue = true;
+    try { cpHueContainer.setPointerCapture(e.pointerId); } catch(e){}
+    handleHueDrag(e);
+});
+cpHueContainer.addEventListener('pointermove', handleHueDrag);
+cpHueContainer.addEventListener('pointerup', (e) => {
+    cpIsDraggingHue = false;
+    try { cpHueContainer.releasePointerCapture(e.pointerId); } catch(e){}
+});
+
+function updateFromInputs() {
+    const r = parseInt(cpInputR.value) || 0;
+    const g = parseInt(cpInputG.value) || 0;
+    const b = parseInt(cpInputB.value) || 0;
+    const [h, s, v] = rgbToHsv(r, g, b);
+    cpCurrentH = h;
+    cpCurrentS = s;
+    cpCurrentV = v;
+    updateColorPickerUI(true);
+    cpNewSwatch.style.backgroundColor = rgbToHex(r, g, b);
+}
+cpInputR.addEventListener('input', updateFromInputs);
+cpInputG.addEventListener('input', updateFromInputs);
+cpInputB.addEventListener('input', updateFromInputs);
+
+function updateFromHsvInputs() {
+    cpCurrentH = parseFloat(cpInputH.value) || 0;
+    cpCurrentS = parseFloat(cpInputS.value) || 0;
+    cpCurrentV = parseFloat(cpInputV.value) || 0;
+    updateColorPickerUI(true);
+    const [r, g, b] = hsvToRgb(cpCurrentH, cpCurrentS, cpCurrentV);
+    cpNewSwatch.style.backgroundColor = rgbToHex(r, g, b);
+}
+cpInputH.addEventListener('input', updateFromHsvInputs);
+cpInputS.addEventListener('input', updateFromHsvInputs);
+cpInputV.addEventListener('input', updateFromHsvInputs);
+
+cpInputHex.addEventListener('input', (e) => {
+    let hex = e.target.value;
+    if (/^[0-9A-Fa-f]{6}$/.test(hex)) {
+        const [r, g, b] = hexToRgb('#' + hex);
+        const [h, s, v] = rgbToHsv(r, g, b);
+        cpCurrentH = h;
+        cpCurrentS = s;
+        cpCurrentV = v;
+        updateColorPickerUI(true);
+        cpNewSwatch.style.backgroundColor = '#' + hex;
+    }
+});
+
+btnCancelCp.addEventListener('click', () => cpModal.close());
+cpForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const [r, g, b] = hsvToRgb(cpCurrentH, cpCurrentS, cpCurrentV);
+    const hex = rgbToHex(r, g, b);
+    
+    if (cpActiveTarget === 'fg') {
+        fgColor = hex;
+        fgColorInput.style.backgroundColor = hex;
+        
+        if (isTypingText && _fgColorSavedSelection) {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(_fgColorSavedSelection);
+            if (!sel.isCollapsed) {
+                document.execCommand('styleWithCSS', false, true);
+                document.execCommand('foreColor', false, fgColor);
+            }
+            _fgColorSavedSelection = null;
+        }
+    } else {
+        bgColor = hex;
+        bgColorInput.style.backgroundColor = hex;
+    }
+    
+    if (typeof updateBrushStamp === 'function') updateBrushStamp();
+    cpModal.close();
+});

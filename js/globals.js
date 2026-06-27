@@ -112,6 +112,30 @@ const colorRangeFuzziness = document.getElementById('color-range-fuzziness');
 const colorRangeFuzzinessVal = document.getElementById('color-range-fuzziness-val');
 const btnCancelColorRange = document.getElementById('btn-cancel-color-range');
 
+const cpModal = document.getElementById('custom-color-picker-modal');
+const cpForm = document.getElementById('custom-color-picker-form');
+const btnCancelCp = document.getElementById('btn-cancel-custom-color-picker');
+const cpSvContainer = document.getElementById('cp-sv-container');
+const cpSvCanvas = document.getElementById('cp-sv-canvas');
+const cpSvCursor = document.getElementById('cp-sv-cursor');
+const cpHueContainer = document.getElementById('cp-hue-container');
+const cpHueCanvas = document.getElementById('cp-hue-canvas');
+const cpHueCursor = document.getElementById('cp-hue-cursor');
+const cpNewSwatch = document.getElementById('cp-new-swatch');
+const cpCurrentSwatch = document.getElementById('cp-current-swatch');
+const cpInputH = document.getElementById('cp-input-h');
+const cpInputS = document.getElementById('cp-input-s');
+const cpInputV = document.getElementById('cp-input-v');
+const cpInputR = document.getElementById('cp-input-r');
+const cpInputG = document.getElementById('cp-input-g');
+const cpInputB = document.getElementById('cp-input-b');
+const cpInputHex = document.getElementById('cp-input-hex');
+
+let cpActiveTarget = 'fg'; // 'fg' or 'bg'
+let cpCurrentH = 0;
+let cpCurrentS = 100;
+let cpCurrentV = 100;
+
 const canvasWrapper = document.querySelector('.canvas-wrapper');
 const canvasStack = document.getElementById('canvas-stack');
 const rulerTopCanvas = document.getElementById('ruler-top');
@@ -273,6 +297,8 @@ let caretBlinkInterval = null;
 
 const fgColorInput = document.getElementById('fg-color');
 const bgColorInput = document.getElementById('bg-color');
+const btnSwapColors = document.getElementById('btn-swap-colors');
+const btnResetColors = document.getElementById('btn-reset-colors');
 
 
 
