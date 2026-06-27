@@ -53,11 +53,11 @@ function updateBrushStamp() {
     generateCircleStamp(ctx, brushRadius, brushHardness, r, g, b);
 }
 
-function drawBrushLine(x0, y0, x1, y1) {
+function drawBrushLine(x0, y0, p0, x1, y1, p1) {
     const step = Math.max(1, brushRadius * 2 * (brushSpacing / 100));
     
     brushDistSinceLastStamp = drawStampLine(
-        x0, y0, x1, y1,
+        x0, y0, p0, x1, y1, p1,
         step, brushRadius,
         brushStampCanvas, brushStrokeCtx,
         brushDistSinceLastStamp,
@@ -76,6 +76,7 @@ function handleBrushPointerDown(e, coords) {
     isDrawing = true;
     lastX = coords.x;
     lastY = coords.y;
+    lastPressure = (e.pointerType === 'pen' && e.pressure !== undefined) ? e.pressure : 1.0;
 
     brushStrokeCanvas.width = documentWidth;
     brushStrokeCanvas.height = documentHeight;
@@ -87,7 +88,15 @@ function handleBrushPointerDown(e, coords) {
     brushOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
 
     brushDistSinceLastStamp = 0;
-    brushStrokeCtx.drawImage(brushStampCanvas, Math.round(lastX) - brushRadius, Math.round(lastY) - brushRadius);
+    
+    const scaledRadius = Math.max(1, brushRadius * lastPressure);
+    const stampSize = scaledRadius * 2;
+    brushStrokeCtx.drawImage(
+        brushStampCanvas, 
+        0, 0, brushStampCanvas.width, brushStampCanvas.height,
+        Math.round(lastX) - scaledRadius, Math.round(lastY) - scaledRadius, 
+        stampSize, stampSize
+    );
 
     const pad = brushRadius + 2;
     compositeStrokeBoundingBox(activeObj, brushOriginalLayerCanvas, brushStrokeCanvas, brushStrength, 'source-over', lastX - pad, lastY - pad, lastX + pad, lastY + pad);
@@ -97,7 +106,9 @@ function handleBrushPointerDown(e, coords) {
 
 function handleBrushPointerMove(e, coords) {
     if (!isDrawing) return;
-    drawBrushLine(lastX, lastY, coords.x, coords.y);
+    const currentPressure = (e.pointerType === 'pen' && e.pressure !== undefined) ? e.pressure : 1.0;
+    drawBrushLine(lastX, lastY, lastPressure, coords.x, coords.y, currentPressure);
     lastX = coords.x;
     lastY = coords.y;
+    lastPressure = currentPressure;
 }

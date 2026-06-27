@@ -238,6 +238,7 @@ let isErasing = false;
 let eraserDistSinceLastStamp = 0;
 let lastX = 0;
 let lastY = 0;
+let lastPressure = 1.0;
 
 // Brush Subsystem
 let brushRadius = 20;

@@ -71,11 +71,11 @@ function updateEraserStamp() {
     }
 }
 
-function drawEraserLine(x0, y0, x1, y1) {
+function drawEraserLine(x0, y0, p0, x1, y1, p1) {
     const step = 1; 
     
     eraserDistSinceLastStamp = drawStampLine(
-        x0, y0, x1, y1,
+        x0, y0, p0, x1, y1, p1,
         step, eraserRadius,
         eraserStampCanvas, eraserStrokeCtx,
         eraserDistSinceLastStamp,
@@ -94,6 +94,7 @@ function handleEraserPointerDown(e, coords) {
     isDrawing = true;
     lastX = coords.x;
     lastY = coords.y;
+    lastPressure = (e.pointerType === 'pen' && e.pressure !== undefined) ? e.pressure : 1.0;
     
     eraserStrokeCanvas.width = documentWidth;
     eraserStrokeCanvas.height = documentHeight;
@@ -105,7 +106,15 @@ function handleEraserPointerDown(e, coords) {
     eraserOriginalLayerCanvas.getContext('2d').drawImage(activeObj.canvas, 0, 0);
     
     eraserDistSinceLastStamp = 0;
-    eraserStrokeCtx.drawImage(eraserStampCanvas, Math.round(lastX) - eraserRadius, Math.round(lastY) - eraserRadius);
+    
+    const scaledRadius = Math.max(1, eraserRadius * lastPressure);
+    const stampSize = scaledRadius * 2;
+    eraserStrokeCtx.drawImage(
+        eraserStampCanvas, 
+        0, 0, eraserStampCanvas.width, eraserStampCanvas.height,
+        Math.round(lastX) - scaledRadius, Math.round(lastY) - scaledRadius, 
+        stampSize, stampSize
+    );
     
     const pad = eraserRadius + 2;
     compositeStrokeBoundingBox(activeObj, eraserOriginalLayerCanvas, eraserStrokeCanvas, eraserStrength, 'destination-out', lastX - pad, lastY - pad, lastX + pad, lastY + pad);
@@ -115,7 +124,9 @@ function handleEraserPointerDown(e, coords) {
 
 function handleEraserPointerMove(e, coords) {
     if (!isDrawing) return;
-    drawEraserLine(lastX, lastY, coords.x, coords.y);
+    const currentPressure = (e.pointerType === 'pen' && e.pressure !== undefined) ? e.pressure : 1.0;
+    drawEraserLine(lastX, lastY, lastPressure, coords.x, coords.y, currentPressure);
     lastX = coords.x;
     lastY = coords.y;
+    lastPressure = currentPressure;
 }

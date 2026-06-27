@@ -199,7 +199,7 @@ function compositeStrokeBoundingBox(activeObj, originalLayerCanvas, strokeCanvas
  * Shared stroke interpolator for Brush and Eraser tools.
  * Draws a sequence of stamps along a line and calls onComposite with the bounding box.
  */
-function drawStampLine(x0, y0, x1, y1, step, radius, stampCanvas, strokeCtx, distSinceLastStamp, onComposite) {
+function drawStampLine(x0, y0, p0, x1, y1, p1, step, baseRadius, stampCanvas, strokeCtx, distSinceLastStamp, onComposite) {
     const dx = x1 - x0;
     const dy = y1 - y0;
     const dist = Math.hypot(dx, dy);
@@ -209,7 +209,7 @@ function drawStampLine(x0, y0, x1, y1, step, radius, stampCanvas, strokeCtx, dis
     let traveled = 0;
     let stamped = false;
     
-    const pad = radius + 2;
+    const pad = baseRadius + 2;
     let minX = documentWidth;
     let minY = documentHeight;
     let maxX = 0;
@@ -222,8 +222,17 @@ function drawStampLine(x0, y0, x1, y1, step, radius, stampCanvas, strokeCtx, dis
         const t = traveled / dist;
         const stampX = x0 + dx * t;
         const stampY = y0 + dy * t;
+        const currentP = p0 + (p1 - p0) * t;
         
-        strokeCtx.drawImage(stampCanvas, Math.round(stampX) - radius, Math.round(stampY) - radius);
+        const scaledRadius = Math.max(1, baseRadius * currentP);
+        const stampSize = scaledRadius * 2;
+        
+        strokeCtx.drawImage(
+            stampCanvas, 
+            0, 0, stampCanvas.width, stampCanvas.height,
+            Math.round(stampX) - scaledRadius, Math.round(stampY) - scaledRadius, 
+            stampSize, stampSize
+        );
         
         minX = Math.min(minX, stampX - pad);
         minY = Math.min(minY, stampY - pad);
