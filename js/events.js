@@ -253,6 +253,26 @@ document.addEventListener('keydown', (e) => {
         } else if (e.key === 'd' || e.key === 'D') {
             e.preventDefault();
             btnResetColors.click();
+        } else if (e.key.toLowerCase() === 'v') {
+            e.preventDefault(); setActiveTool('move');
+        } else if (e.key.toLowerCase() === 'p') {
+            e.preventDefault(); setActiveTool('pencil');
+        } else if (e.key.toLowerCase() === 'b') {
+            e.preventDefault(); setActiveTool('brush');
+        } else if (e.key.toLowerCase() === 'e') {
+            e.preventDefault(); setActiveTool('eraser');
+        } else if (e.key.toLowerCase() === 'm') {
+            e.preventDefault(); setActiveTool('rect-select');
+        } else if (e.key.toLowerCase() === 'o') {
+            e.preventDefault(); setActiveTool('oval-select');
+        } else if (e.key.toLowerCase() === 'l') {
+            e.preventDefault(); setActiveTool('polygon-select');
+        } else if (e.key.toLowerCase() === 't') {
+            e.preventDefault(); setActiveTool('text');
+        } else if (e.key.toLowerCase() === 'i') {
+            e.preventDefault(); setActiveTool('eyedropper');
+        } else if (e.key.toLowerCase() === 'z') {
+            e.preventDefault(); setActiveTool('zoom');
         }
     }
 });
@@ -784,7 +804,17 @@ colorRangeForm.addEventListener('submit', (e) => {
 
 colorRangeFuzziness.addEventListener('input', (e) => {
     colorRangeFuzzinessValue = parseInt(e.target.value, 10);
-    colorRangeFuzzinessVal.textContent = colorRangeFuzzinessValue;
+    colorRangeFuzzinessInput.value = colorRangeFuzzinessValue;
+    updateColorRangePreview();
+});
+
+colorRangeFuzzinessInput.addEventListener('input', (e) => {
+    let val = parseInt(e.target.value, 10);
+    if (isNaN(val)) val = 0;
+    if (val < 0) val = 0;
+    if (val > 200) val = 200;
+    colorRangeFuzzinessValue = val;
+    colorRangeFuzziness.value = val;
     updateColorRangePreview();
 });
 

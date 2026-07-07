@@ -18,6 +18,7 @@
 }
 
 .tool-btn {
+    position: relative;
     width: 36px;
     height: 36px;
     border: none;
@@ -29,6 +30,16 @@
     align-items: center;
     cursor: pointer;
     transition: all var(--transition);
+}
+
+.tool-shortcut {
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-size: 9px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    font-weight: 500;
 }
 
 .tool-btn:hover {

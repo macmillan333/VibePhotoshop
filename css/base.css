@@ -104,3 +104,99 @@ body {
 #brush-cursor.active, #eraser-cursor.active {
     display: block;
 }
+
+/* Custom Range Slider */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+}
+
+input[type="range"]:focus {
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--bg-dark);
+    height: 4px;
+    border-radius: var(--radius-sm);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -6px; /* Centering the thumb */
+    background-color: var(--accent);
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+    box-shadow: var(--shadow-sm);
+    transition: background-color var(--transition), transform var(--transition);
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+    background-color: var(--accent-hover);
+    transform: scale(1.1);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+    background-color: var(--accent-active);
+    transform: scale(0.95);
+}
+
+input[type="range"]:disabled::-webkit-slider-thumb {
+    background-color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Custom Select Dropdown */
+select {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 4px 28px 4px 12px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%239090A6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+}
+
+select:hover:not(:disabled) {
+    border-color: var(--border-light);
+}
+
+select:focus:not(:disabled) {
+    border-color: var(--accent);
+}
+
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+select option {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+/* Hide native number spin buttons globally */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+}

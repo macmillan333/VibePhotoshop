@@ -39,7 +39,7 @@
 }
 
 .tool-properties select {
-    background: var(--bg-surface);
+    background-color: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -130,15 +130,7 @@
     z-index: 1; /* bring focus border above spin buttons */
 }
 
-/* Hide native number spin buttons */
-.tool-properties input[type="number"]::-webkit-inner-spin-button,
-.tool-properties input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-.tool-properties input[type="number"] {
-    -moz-appearance: textfield; /* Firefox */
-}
+
 
 /* For range sliders */
 .toolbar-input-group input[type="range"] {

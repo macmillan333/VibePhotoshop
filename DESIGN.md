@@ -68,9 +68,11 @@ We follow an 4px/8px baseline grid system for spacing (margins, padding, gaps).
   - Primary (`.btn-primary`): Accent background, white text, subtle translateY(-1px) and shadow on hover.
   - Secondary (`.btn-secondary`): Elevated background, primary text.
   - Icon Buttons (`.tool-btn`, `.btn-icon`): Transparent by default, elevate on hover, accent color when active.
-- **Inputs**: Solid `--bg-elevated` background with a `--border-color` border. On focus, border changes to `--accent` with no outline.
+- **Inputs (Text/Number)**: Solid `--bg-elevated` background with a `--border-color` border. On focus, border changes to `--accent` with no outline. Native spin buttons (`up/down` arrows) are hidden globally on number inputs for a sleek appearance. If 1-step increments are critical (e.g., Tool Properties), custom `.spin-btn` elements are used.
+- **Dropdowns (`<select>`)**: Styled identically to standard inputs but featuring a custom SVG chevron icon aligned to the right.
+- **Range Sliders (`input[type="range"]`)**: Custom webkit/moz styling utilizing a `--bg-dark` track to create an inset groove effect, and a `--accent` circular thumb that scales slightly on hover.
 - **Icons**: Use SVG icons with `stroke="currentColor"`, `stroke-width="2"`, `stroke-linecap="round"`, and `stroke-linejoin="round"`.
-- **Dropdowns & Modals**: Appear with a subtle fade and slide-up animation (`transform: translateY(-4px)` to `0`). Modals use a dark blurred backdrop (`backdrop-filter: blur(4px)`).
+- **Dropdown Menus & Modals**: Appear with a subtle fade and slide-up animation (`transform: translateY(-4px)` to `0`). Modals use a dark blurred backdrop (`backdrop-filter: blur(4px)`).
 - **Disabled States**: Reduce opacity to `0.5` (or `0.3` for icons) and set `cursor: not-allowed`.
 
 ## 7. Layout Architecture

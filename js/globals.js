@@ -109,7 +109,7 @@ const colorRangeModal = document.getElementById('color-range-modal');
 const colorRangeForm = document.getElementById('color-range-form');
 const colorRangePreviewCanvas = document.getElementById('color-range-preview-canvas');
 const colorRangeFuzziness = document.getElementById('color-range-fuzziness');
-const colorRangeFuzzinessVal = document.getElementById('color-range-fuzziness-val');
+const colorRangeFuzzinessInput = document.getElementById('color-range-fuzziness-input');
 const btnCancelColorRange = document.getElementById('btn-cancel-color-range');
 
 const cpModal = document.getElementById('custom-color-picker-modal');
