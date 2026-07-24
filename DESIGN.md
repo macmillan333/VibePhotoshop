@@ -73,6 +73,7 @@ We follow an 4px/8px baseline grid system for spacing (margins, padding, gaps).
 - **Range Sliders (`input[type="range"]`)**: Custom webkit/moz styling utilizing a `--bg-dark` track to create an inset groove effect, and a `--accent` circular thumb that scales slightly on hover.
 - **Icons**: Use SVG icons with `stroke="currentColor"`, `stroke-width="2"`, `stroke-linecap="round"`, and `stroke-linejoin="round"`.
 - **Dropdown Menus & Modals**: Appear with a subtle fade and slide-up animation (`transform: translateY(-4px)` to `0`). Modals use a dark blurred backdrop (`backdrop-filter: blur(4px)`).
+- **Touch & Pen Input**: For custom draggable elements (e.g., custom sliders, modal headers, resizers) or canvas regions, use `touch-action: none` to prevent the browser from interpreting pen strokes or touch inputs as native gestures (like scrolling).
 - **Disabled States**: Reduce opacity to `0.5` (or `0.3` for icons) and set `cursor: not-allowed`.
 
 ## 7. Layout Architecture

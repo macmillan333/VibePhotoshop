@@ -1,12 +1,11 @@
 // --- Tool Management ---
 function setActiveTool(toolId) {
-    toolBtns.forEach(btn => btn.classList.remove('active'));
-    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-brush', 'tool-eraser', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'tool-text', 'tool-eyedropper', 'alt-down');
-
     if (currentTool === toolId) {
-        currentTool = null;
         return;
     }
+
+    toolBtns.forEach(btn => btn.classList.remove('active'));
+    canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-brush', 'tool-eraser', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'tool-text', 'tool-eyedropper', 'alt-down');
 
     currentTool = toolId;
     if (toolId === 'move') {
@@ -469,26 +468,31 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
 });
 
 canvasWrapper.addEventListener('pointermove', (e) => {
-    if (!documentCreated) return;
-
     if (currentTool === 'brush' || currentTool === 'eraser') {
-        const cursorCanvasCoords = getExactCanvasCoords(e, true);
-        const rect = canvasStack.getBoundingClientRect();
-        const scaleX = documentWidth / rect.width;
-        const scaleY = documentHeight / rect.height;
-        const snappedClientX = rect.left + cursorCanvasCoords.x / scaleX;
-        const snappedClientY = rect.top + cursorCanvasCoords.y / scaleY;
+        let cursorX = e.clientX;
+        let cursorY = e.clientY;
+
+        if (documentCreated) {
+            const cursorCanvasCoords = getExactCanvasCoords(e, true);
+            const rect = canvasStack.getBoundingClientRect();
+            const scaleX = documentWidth / rect.width;
+            const scaleY = documentHeight / rect.height;
+            cursorX = rect.left + cursorCanvasCoords.x / scaleX;
+            cursorY = rect.top + cursorCanvasCoords.y / scaleY;
+        }
 
         if (currentTool === 'brush') {
             brushCursor.classList.add('active');
-            brushCursor.style.left = snappedClientX + 'px';
-            brushCursor.style.top = snappedClientY + 'px';
+            brushCursor.style.left = cursorX + 'px';
+            brushCursor.style.top = cursorY + 'px';
         } else {
             eraserCursor.classList.add('active');
-            eraserCursor.style.left = snappedClientX + 'px';
-            eraserCursor.style.top = snappedClientY + 'px';
+            eraserCursor.style.left = cursorX + 'px';
+            eraserCursor.style.top = cursorY + 'px';
         }
     }
+
+    if (!documentCreated) return;
 
     if (isPanning) {
         const dx = e.clientX - panStartX;

@@ -166,6 +166,7 @@
     width: 6px;
     cursor: col-resize;
     z-index: 10;
+    touch-action: none;
 }
 
 .layer-item.hidden-layer .layer-thumb {

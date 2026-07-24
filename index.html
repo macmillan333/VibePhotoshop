@@ -690,13 +690,13 @@
             <h2 style="margin-top: 0; margin-bottom: 10px; font-size: 15px;">Color Picker</h2>
             <div style="display: flex; gap: 10px;">
                 <!-- SV Map -->
-                <div style="position: relative; width: 180px; height: 180px; border: 1px solid var(--border-color); cursor: crosshair; flex-shrink: 0;" id="cp-sv-container">
+                <div style="position: relative; width: 180px; height: 180px; border: 1px solid var(--border-color); cursor: crosshair; flex-shrink: 0; touch-action: none;" id="cp-sv-container">
                     <canvas id="cp-sv-canvas" width="180" height="180" style="display: block; width: 100%; height: 100%;"></canvas>
                     <div id="cp-sv-cursor" style="position: absolute; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 2px #000; pointer-events: none; transform: translate(-50%, -50%);"></div>
                 </div>
                 
                 <!-- Hue Slider -->
-                <div style="position: relative; width: 16px; height: 180px; border: 1px solid var(--border-color); cursor: ns-resize; flex-shrink: 0;" id="cp-hue-container">
+                <div style="position: relative; width: 16px; height: 180px; border: 1px solid var(--border-color); cursor: ns-resize; flex-shrink: 0; touch-action: none;" id="cp-hue-container">
                     <canvas id="cp-hue-canvas" width="16" height="180" style="display: block; width: 100%; height: 100%;"></canvas>
                     <div id="cp-hue-cursor" style="position: absolute; left: -2px; right: -2px; height: 4px; border: 2px solid #fff; border-radius: 2px; box-shadow: 0 0 2px #000; pointer-events: none; transform: translateY(-50%);"></div>
                 </div>

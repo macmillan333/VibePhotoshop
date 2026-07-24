@@ -25,6 +25,7 @@
     margin-bottom: 20px;
     cursor: move;
     user-select: none;
+    touch-action: none;
 }
 
 #color-range-modal {
