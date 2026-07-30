@@ -4,6 +4,10 @@ function setActiveTool(toolId) {
         return;
     }
 
+    if (currentTool === 'text' && typeof commitTextLayer === 'function') {
+        commitTextLayer();
+    }
+
     toolBtns.forEach(btn => btn.classList.remove('active'));
     canvasStack.classList.remove('tool-move', 'tool-pencil', 'tool-brush', 'tool-eraser', 'tool-zoom', 'tool-rect-select', 'tool-oval-select', 'tool-polygon-select', 'tool-text', 'tool-eyedropper', 'alt-down');
 
@@ -419,6 +423,8 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
                 textX = activeObj.textX || coords.x;
                 textY = activeObj.textY || coords.y;
                 textEditor.innerHTML = activeObj.htmlContent || activeObj.textContent || "";
+                textEditor.style.lineHeight = activeObj.lineHeight || '1.2';
+                lineHeightInput.value = activeObj.lineHeight || '1.2';
                 clickedExistingText = true;
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
             }
@@ -428,6 +434,8 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
             textX = coords.x;
             textY = coords.y;
             textEditor.innerHTML = "";
+            textEditor.style.lineHeight = '1.2';
+            lineHeightInput.value = '1.2';
             textLayerId = createLayer("Text Layer", "text").id;
             const newObj = getActiveLayerObj();
             newObj.textX = textX;
@@ -728,6 +736,10 @@ canvasWrapper.addEventListener('pointerup', (e) => {
             if (!moveHasSelection) {
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                 activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
+                if (activeObj.type === 'text') {
+                    activeObj.textX = (activeObj.textX || 0) + dx;
+                    activeObj.textY = (activeObj.textY || 0) + dy;
+                }
             } else {
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
                 activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);

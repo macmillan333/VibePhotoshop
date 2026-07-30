@@ -18,7 +18,8 @@ function renderTextLayerHTML() {
     // Use the editor's current base color (set when editing started) as the default,
     // but let inline color styles from execCommand('foreColor') override it.
     const baseColor = textEditor.style.color || fgColor;
-    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${documentWidth}" height="${documentHeight}"><foreignObject x="${textX}" y="${textY}" width="${documentWidth - textX}" height="${documentHeight - textY}"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 24px; color: ${baseColor}; line-height: 1.2; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 0;">${xmlSafeHtml}</div></foreignObject></svg>`;
+    const lh = layer.lineHeight || '1.2';
+    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${documentWidth}" height="${documentHeight}"><foreignObject x="${textX}" y="${textY}" width="${documentWidth - textX}" height="${documentHeight - textY}"><div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Inter', sans-serif; font-size: 24px; color: ${baseColor}; line-height: ${lh}; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 0;">${xmlSafeHtml}</div></foreignObject></svg>`;
     const img = new Image();
 
     // Use data URI instead of Blob URL to prevent cross-origin canvas tainting in Chromium
@@ -48,6 +49,7 @@ function commitTextLayer() {
         if (layer) {
             layer.textContent = textContent;
             layer.htmlContent = html;
+            layer.lineHeight = textEditor.style.lineHeight || '1.2';
             layer.name = textContent.split('\n')[0].substring(0, 20) || 'Text Layer';
             renderTextLayerHTML();
             renderLayersList();
@@ -121,4 +123,23 @@ function applyTextStyle(styleProp, value) {
 
 fontSizeInput.addEventListener('change', (e) => applyTextStyle('fontSize', e.target.value + 'px'));
 letterSpacingInput.addEventListener('change', (e) => applyTextStyle('letterSpacing', e.target.value + 'px'));
-lineHeightInput.addEventListener('change', (e) => applyTextStyle('lineHeight', e.target.value));
+lineHeightInput.addEventListener('change', (e) => { textEditor.style.lineHeight = e.target.value; });
+
+document.addEventListener('pointerdown', (e) => {
+    if (!isTypingText) return;
+
+    // Do not commit if clicking inside the text editor or its toolbar
+    if (e.target === textEditor || textEditor.contains(e.target) || 
+        e.target === textToolbar || textToolbar.contains(e.target)) {
+        return;
+    }
+
+    // Do not commit if clicking on the canvas with the text tool, 
+    // tools.js handles pointerdown on canvasWrapper to commit or start new text
+    if (canvasWrapper.contains(e.target) && currentTool === 'text') {
+        return; 
+    }
+
+    // Commit text layer when clicking elsewhere (e.g. layers panel, other tools)
+    commitTextLayer();
+}, true);
