@@ -337,12 +337,15 @@ canvasWrapper.addEventListener('pointerdown', (e) => {
 
         const bounds = getSelectionBounds();
         moveHasSelection = bounds.hasSelection;
+        if (activeObj.type === 'image') moveHasSelection = false;
 
-        if (!bounds.hasSelection) {
-            moveOriginalLayerCanvas = document.createElement('canvas');
-            moveOriginalLayerCanvas.width = documentWidth;
-            moveOriginalLayerCanvas.height = documentHeight;
-            moveOriginalLayerCanvas.getContext('2d', { willReadFrequently: true }).drawImage(activeObj.canvas, 0, 0);
+        if (!moveHasSelection) {
+            if (activeObj.type !== 'image') {
+                moveOriginalLayerCanvas = document.createElement('canvas');
+                moveOriginalLayerCanvas.width = documentWidth;
+                moveOriginalLayerCanvas.height = documentHeight;
+                moveOriginalLayerCanvas.getContext('2d', { willReadFrequently: true }).drawImage(activeObj.canvas, 0, 0);
+            }
         } else {
             const res = extractSelectionRegion(activeObj.ctx, bounds.hasSelection, bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
             moveFloatingCanvas = res.floatingCanvas;
@@ -571,7 +574,13 @@ canvasWrapper.addEventListener('pointermove', (e) => {
         activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
 
         if (!moveHasSelection) {
-            activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
+            if (activeObj.type === 'image' && activeObj.originalImage) {
+                const ix = (activeObj.imageX || 0) + dx;
+                const iy = (activeObj.imageY || 0) + dy;
+                activeObj.ctx.drawImage(activeObj.originalImage, ix, iy);
+            } else {
+                activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
+            }
         } else {
             activeObj.ctx.drawImage(moveErasedLayerCanvas, 0, 0);
             activeObj.ctx.drawImage(moveFloatingCanvas, moveSelectionMinX + dx, moveSelectionMinY + dy);
@@ -735,7 +744,13 @@ canvasWrapper.addEventListener('pointerup', (e) => {
         if (activeObj) {
             if (!moveHasSelection) {
                 activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
-                activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
+                if (activeObj.type === 'image' && activeObj.originalImage) {
+                    activeObj.imageX = (activeObj.imageX || 0) + dx;
+                    activeObj.imageY = (activeObj.imageY || 0) + dy;
+                    activeObj.ctx.drawImage(activeObj.originalImage, activeObj.imageX, activeObj.imageY);
+                } else {
+                    activeObj.ctx.drawImage(moveOriginalLayerCanvas, dx, dy);
+                }
                 if (activeObj.type === 'text') {
                     activeObj.textX = (activeObj.textX || 0) + dx;
                     activeObj.textY = (activeObj.textY || 0) + dy;

@@ -99,6 +99,17 @@ function executeClear(activeObj, hasSelection) {
     saveState();
 }
 
+function overwriteSystemClipboard() {
+    const input = document.createElement('textarea');
+    input.value = '[VibePhotoshop Internal Image]';
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+}
+
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.isContentEditable) return;
 
@@ -192,6 +203,7 @@ document.addEventListener('keydown', (e) => {
                 }
                 clipCtx.putImageData(destData, 0, 0);
             }
+            overwriteSystemClipboard();
             showToast("Copied to clipboard");
         } else if (e.key === 'x' || e.key === 'X') {
             e.preventDefault();
@@ -233,18 +245,10 @@ document.addEventListener('keydown', (e) => {
             }
             updateLayerThumbnail(activeObj.id);
             saveState();
+            overwriteSystemClipboard();
             showToast("Copied to clipboard");
         } else if (e.key === 'v' || e.key === 'V') {
-            e.preventDefault();
-            if (!clipboardData) {
-                showToast("Clipboard is empty");
-                return;
-            }
-
-            const newLayer = createLayer('Pasted Layer');
-            newLayer.ctx.drawImage(clipboardData, 0, 0);
-            updateLayerThumbnail(newLayer.id);
-            saveState();
+            // Native paste event handles pasting
         }
     } else if (!e.ctrlKey && !e.metaKey && !e.altKey) {
         if (e.key === 'x' || e.key === 'X') {
@@ -1347,4 +1351,48 @@ cpForm.addEventListener('submit', (e) => {
     
     if (typeof updateBrushStamp === 'function') updateBrushStamp();
     cpModal.close();
+});
+
+document.addEventListener('paste', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+    }
+    
+    let hasSystemImage = false;
+    const items = e.clipboardData && e.clipboardData.items;
+
+    if (items) {
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const img = new Image();
+                img.onload = () => {
+                    const newLayer = createLayer('Pasted Image', 'image');
+                    newLayer.originalImage = img;
+                    newLayer.imageX = 0;
+                    newLayer.imageY = 0;
+                    newLayer.ctx.drawImage(img, 0, 0);
+                    updateLayerThumbnail(newLayer.id);
+                    saveState();
+                    showToast("Pasted image from clipboard");
+                };
+                img.src = URL.createObjectURL(blob);
+                e.preventDefault();
+                hasSystemImage = true;
+                return;
+            }
+        }
+    }
+    
+    // Fallback to internal clipboardData if no image was on the system clipboard
+    if (!hasSystemImage && typeof clipboardData !== 'undefined' && clipboardData) {
+        const newLayer = createLayer('Pasted Layer');
+        newLayer.ctx.drawImage(clipboardData, 0, 0);
+        updateLayerThumbnail(newLayer.id);
+        saveState();
+        showToast("Pasted layer");
+        e.preventDefault();
+    } else if (!hasSystemImage) {
+        showToast("Clipboard is empty");
+    }
 });

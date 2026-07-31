@@ -259,8 +259,22 @@ function renderLayersList() {
         title.className = 'layer-name';
         title.textContent = layer.name;
 
+        let typeIcon = null;
+        if (layer.type === 'image') {
+            typeIcon = document.createElement('span');
+            typeIcon.className = 'layer-type-icon';
+            typeIcon.title = 'Image Layer (Smart Object)';
+            typeIcon.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+            typeIcon.style.marginLeft = '4px';
+            typeIcon.style.marginRight = '4px';
+            typeIcon.style.opacity = '0.7';
+            typeIcon.style.display = 'flex';
+            typeIcon.style.alignItems = 'center';
+        }
+
         item.appendChild(visBtn);
         item.appendChild(tcvs);
+        if (typeIcon) item.appendChild(typeIcon);
         item.appendChild(title);
 
         visBtn.addEventListener('click', (e) => {
@@ -316,12 +330,12 @@ function renderLayersList() {
 
             ctxMergeSelected.disabled = selectedLayerIds.size < 2;
 
-            let hasText = false;
+            let canRasterize = false;
             for (const selId of selectedLayerIds) {
                 const l = layers.find(layer => layer.id === selId);
-                if (l && l.type === 'text') hasText = true;
+                if (l && (l.type === 'text' || l.type === 'image')) canRasterize = true;
             }
-            ctxRasterizeLayer.disabled = !hasText;
+            ctxRasterizeLayer.disabled = !canRasterize;
 
             layerContextMenu.classList.remove('hidden');
             layerContextMenu.style.left = `${e.clientX - layerContextMenu.offsetWidth}px`;
@@ -491,12 +505,15 @@ ctxRasterizeLayer.addEventListener('click', () => {
     let changed = false;
     for (const id of selectedLayerIds) {
         const layer = layers.find(l => l.id === id);
-        if (layer && layer.type === 'text') {
+        if (layer && (layer.type === 'text' || layer.type === 'image')) {
             layer.type = 'pixel';
             delete layer.textContent;
             delete layer.htmlContent;
             delete layer.textX;
             delete layer.textY;
+            delete layer.originalImage;
+            delete layer.imageX;
+            delete layer.imageY;
             updateLayerThumbnail(layer.id);
             changed = true;
         }

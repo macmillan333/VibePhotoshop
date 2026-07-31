@@ -24,6 +24,7 @@ Pure variable declarations — no event handlers or logic. All central applicati
 
 ### 2. Layer Management (`js/layers.js`)
 - **Native Canvas Stacking:** Each layer is an independent `<canvas>` element injected into the `#canvas-stack` container.
+- **Layer Types:** Support for `pixel`, `text`, and `image` layers. Image layers (Smart Objects) store their original `HTMLImageElement` source to allow non-destructive moving without clipping to document bounds. They can be rasterized back to pixel layers via the context menu.
 - **Hardware Compositing:** Visual compositing is handled natively by the browser engine using CSS `z-index`, avoiding continuous manual redrawing of a master canvas.
 - **DOM Integration:** Layer thumbnails and visibility toggles are synchronized with the DOM list.
 
@@ -46,7 +47,7 @@ Pure variable declarations — no event handlers or logic. All central applicati
 ### 5. Tools & Transform Engine (`js/tools.js`, `js/viewport.js`)
 - **Pointer Events:** Canvas interaction is driven by `pointerdown`, `pointermove`, and `pointerup` to seamlessly support both mouse and tablet/pen inputs. `tools.js` acts as the central dispatcher, delegating to tool-specific handlers in `brush.js`, `eraser.js`, etc.
 - **Viewport, Rulers & Guides (`js/viewport.js`):** Pan/zoom logic (`applyViewport`, `zoomAtPoint`) and canvas coordinate translation (`getCanvasCoords`, `getExactCanvasCoords`) are encapsulated here. The viewport dynamically renders top and left UI Rulers that scale tick intervals based on zoom level. 1px CSS div markers driven by global `pointermove` events live-track the user's cursor across the rulers. Guides are implemented as an SVG overlay (`<svg id="guides-svg">`) inside the canvas stack, leveraging `vector-effect="non-scaling-stroke"` to keep lines exactly 1 physical pixel wide at any zoom level without consuming bitmap memory. Tool coordinates automatically snap to guides within a fixed screen-pixel radius unless bypassed with the `Ctrl`/`Cmd` key. Guides are manipulated via the Move tool.
-- **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer.
+- **Transform/Move:** Complex operations like Free Transform manage their own temporary DOM canvases (`moveFloatingCanvas`, `transformErasedLayerCanvas`) to visually preview transformations before mathematically committing the final pixels back to the active layer. When moving an `image` layer, the Move tool adjusts its native X/Y offsets and redraws the uncropped original image directly, bypassing pixel extraction to prevent data loss.
 
 ### 6. Text Tool (`js/tools.js`, `js/text-tool.js`, `css/components/text-toolbar.css`)
 - **Layer Type:** Text layers are stored as regular layer objects with `type: 'text'` and extra properties: `textContent` (plain text), `htmlContent` (rich HTML), `textX`, `textY` (origin coordinates), and `lineHeight` (layer-level property).
@@ -88,6 +89,10 @@ Pure variable declarations — no event handlers or logic. All central applicati
 - **Pointer Capture:** Dragging uses `setPointerCapture` on the `<h2>` handle for reliable tracking even when the cursor moves fast.
 - **Positioning Strategy:** On drag start, the dialog's current `getBoundingClientRect()` position is captured, the browser's default centering (`inset: 0` + `margin: auto`) is replaced with explicit `position: fixed` / `left` / `top`, and mouse deltas are applied from there.
 - **Re-centering on Reopen:** A `MutationObserver` watches each dialog's `open` attribute and clears all inline positioning overrides (including `inset`) when the dialog reopens, restoring the browser's native centering.
+
+### 12. Clipboard & Paste Engine (`js/events.js`)
+- **System vs Internal Clipboard:** The application relies on a native `paste` event listener on the `document` to handle both system clipboard images (e.g. screenshots) and internal layer copying.
+- **Internal Copy Marker:** Because `file://` protocols cannot easily use the Async Clipboard API to write images to the system clipboard, internal copying (`Ctrl+C`) stores pixels in a global `clipboardData` variable and overwrites the system clipboard with a text marker (`[VibePhotoshop Internal Image]`). During a paste, if this exact text marker is found instead of a system image, the app knows to paste from the internal `clipboardData`. This elegantly resolves conflicts where old system screenshots would otherwise override newer internal copies.
 
 ## Guidelines for AI / Future Modifications (Token Saving)
 - **Do not introduce build tools:** Stick to vanilla JS and CSS.

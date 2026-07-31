@@ -278,7 +278,17 @@ function nudgeMove(dx, dy) {
         }
     }
 
-    if (!hasSel) {
+    if (!hasSel || activeObj.type === 'image') {
+        if (activeObj.type === 'image' && activeObj.originalImage) {
+            activeObj.imageX = (activeObj.imageX || 0) + dx;
+            activeObj.imageY = (activeObj.imageY || 0) + dy;
+            activeObj.ctx.clearRect(0, 0, documentWidth, documentHeight);
+            activeObj.ctx.drawImage(activeObj.originalImage, activeObj.imageX, activeObj.imageY);
+            updateLayerThumbnail(activeObj.id);
+            saveState();
+            return;
+        }
+
         const temp = document.createElement('canvas');
         temp.width = documentWidth;
         temp.height = documentHeight;
